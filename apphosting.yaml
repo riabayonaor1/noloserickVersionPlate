@@ -9,15 +9,34 @@ runConfig:
 
 # Environment variables and secrets.
 env:
-  # Configure environment variables.
-  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
+  # Configuración para OpenAI API usando secretos seguros
   - variable: OPENAI_API_KEY
-    value: "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"
+    secret: openai-api-key
     availability:
       - BUILD
       - RUNTIME
 
-  # Grant access to secrets in Cloud Secret Manager.
-  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
-  # - variable: MY_SECRET
-  #   secret: mySecretRef
+  # Variables públicas para Next.js (accesibles en el cliente)
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyCCEfDIWfjsUYERJGCm-Pfm3bZNw7IpXKc"
+    availability:
+      - BUILD
+      - RUNTIME
+      
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "impala-a3686.firebaseapp.com"
+    availability:
+      - BUILD
+      - RUNTIME
+      
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "impala-a3686"
+    availability:
+      - BUILD
+      - RUNTIME
+      
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "impala-a3686.appspot.com"
+    availability:
+      - BUILD
+      - RUNTIME
