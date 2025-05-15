@@ -2,7 +2,7 @@
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
   minInstances: 0
-  # maxInstances: 100
+  maxInstances: 10  # Reducido a 10 o menos como indica el error
   # concurrency: 80
   # cpu: 1
   # memoryMiB: 512
