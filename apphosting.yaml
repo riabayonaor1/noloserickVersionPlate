@@ -10,6 +10,10 @@ runConfig:
 # Environment variables and secrets.
 env:
   # Configuración para OpenAI API usando secretos seguros
+  # La clave API está almacenada como un secreto en Cloud Secret Manager
+  # con el nombre "openai-api-key". 
+  # Permisos configurados con: firebase apphosting:secrets:grantaccess openai-api-key --backend rick-plataforma-plate
+  # La API key está segura y no expuesta en el código fuente
   - variable: OPENAI_API_KEY
     secret: openai-api-key
     availability:
