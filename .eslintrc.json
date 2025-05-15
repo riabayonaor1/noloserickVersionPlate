@@ -1,0 +1,19 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "perfectionist/sort-imports": "off",
+    "perfectionist/sort-named-imports": "off",
+    "perfectionist/sort-objects": "off",
+    "perfectionist/sort-jsx-props": "off",
+    "perfectionist/sort-interfaces": "off",
+    "perfectionist/sort-union-types": "off",
+    "perfectionist/sort-array-includes": "off",
+    "perfectionist/sort-named-exports": "off",
+    "perfectionist/sort-object-types": "off",
+    "perfectionist/sort-switch-case": "off",
+    "perfectionist/sort-classes": "off",
+    "unused-imports/no-unused-imports": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "prefer-const": "off"
+  }
+}

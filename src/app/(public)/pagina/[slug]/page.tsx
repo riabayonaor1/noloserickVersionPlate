@@ -1,0 +1,210 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { getPageBySlug } from '@/lib/firestoreService';
+import { useAuth } from '@/contexts/AuthContext';
+import { Plate } from '@udecode/plate/react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
+import { PlateEditor } from '@/components/editor/plate-editor';
+import { Button } from '@/components/ui/button';
+import { useCreateEditor } from '@/components/editor/use-create-editor';
+import { Editor, EditorContainer } from '@/components/ui/editor';
+import { updatePage } from '@/lib/firestoreService';
+import { toast } from 'sonner';
+
+const DynamicPage = () => {
+  const { slug } = useParams();
+  const { isAdmin } = useAuth();
+  const [pageData, setPageData] = useState({
+    id: '',
+    title: '',
+    content: '',
+    color: '#ffffff',
+    titleColor: '#000000',
+    layout: 'default',
+    animation: 'none',
+    isPublished: true,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  
+  // Crear editor para visualización y edición
+  const editor = useCreateEditor();
+
+  useEffect(() => {
+    const fetchPageData = async () => {
+      if (!slug) {
+        setError('URL inválida');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const page = await getPageBySlug(slug as string);
+        
+        if (!page) {
+          setError('Página no encontrada');
+          setLoading(false);
+          return;
+        }
+
+        setPageData({
+          id: page.id,
+          title: page.title || '',
+          content: page.content || '',
+          color: page.color || '#ffffff',
+          titleColor: page.titleColor || '#000000',
+          layout: page.layout || 'default',
+          animation: page.animation || 'none',
+          isPublished: page.isPublished,
+        });
+
+        // Inicializar el editor con el contenido de la página
+        try {
+          const parsedContent = JSON.parse(page.content);
+          if (editor) {
+            editor.resetEditor({ nodes: parsedContent });
+          }
+        } catch (e) {
+          console.error('Error al parsear el contenido:', e);
+          // Si hay un error al parsear, inicializar el editor con contenido vacío
+          if (editor) {
+            editor.resetEditor({ nodes: [{ type: 'p', children: [{ text: '' }] }] });
+          }
+        }
+
+        setLoading(false);
+      } catch (err) {
+        console.error('Error al cargar la página:', err);
+        setError('Error al cargar la página');
+        setLoading(false);
+      }
+    };
+
+    if (slug) {
+      fetchPageData();
+    }
+  }, [slug, editor]);
+
+  const handleEditToggle = () => {
+    setIsEditing(!isEditing);
+  };
+
+  const handleSaveChanges = async () => {
+    if (!editor || !pageData.id) return;
+    
+    try {
+      const editorValue = editor.children;
+      const contentJSON = JSON.stringify(editorValue);
+      
+      const success = await updatePage(pageData.id, {
+        content: contentJSON,
+      });
+      
+      if (success) {
+        setPageData(prev => ({ ...prev, content: contentJSON }));
+        setIsEditing(false);
+        toast.success('Página guardada con éxito');
+      } else {
+        toast.error('Error al guardar la página');
+      }
+    } catch (error) {
+      console.error('Error al guardar la página:', error);
+      toast.error('Error al guardar la página');
+    }
+  };
+
+  const getLayoutClasses = () => {
+    // Base classes for mobile-first (single column)
+    let containerClasses = "w-full p-4 md:p-6 lg:p-8"; // Default container for single column flow
+
+    // Apply desktop-specific layout classes using md: prefix
+    switch (pageData.layout) {
+      case 'full-width':
+        // Already mobile-first by default
+        break;
+      case 'two-columns':
+        containerClasses = "container mx-auto p-4 md:p-6 lg:p-8";
+        break;
+      case 'three-columns':
+        containerClasses = "container mx-auto p-4 md:p-6 lg:p-8";
+        break;
+      case 'sidebar-left':
+        containerClasses = "flex flex-col md:flex-row gap-6 lg:gap-8 p-4 md:p-6 lg:p-8";
+        break;
+      case 'sidebar-right':
+        containerClasses = "flex flex-col md:flex-row-reverse gap-6 lg:gap-8 p-4 md:p-6 lg:p-8";
+        break;
+      case 'text-image-right':
+        containerClasses = "container mx-auto p-4 md:p-6 lg:p-8 flex flex-col md:flex-row gap-6 lg:gap-8 items-start";
+        break;
+      case 'text-image-left':
+        containerClasses = "container mx-auto p-4 md:p-6 lg:p-8 flex flex-col md:flex-row-reverse gap-6 lg:gap-8 items-start";
+        break;
+      case 'default':
+      default:
+        containerClasses = "container mx-auto p-4 md:p-6 lg:p-8";
+        break;
+    }
+    return containerClasses;
+  };
+
+  const getAnimationClass = () => {
+    switch (pageData.animation) {
+      case 'fade-in': return "animate-fade-in";
+      case 'slide-in-up': return "animate-slide-in-up";
+      default: return "";
+    }
+  };
+
+  if (loading) return <div className="container mx-auto p-4">Cargando página...</div>;
+  if (error) return <div className="container mx-auto p-4 text-red-600">{error}</div>;
+
+  return (
+    <div
+      className={`${getLayoutClasses()} ${getAnimationClass()}`}
+      style={{ backgroundColor: pageData.color }}
+    >
+      {isAdmin && (
+        <div className="mb-4 flex gap-2 print:hidden">
+          {!isEditing ? (
+            <Button onClick={handleEditToggle}>Activar Edición</Button>
+          ) : (
+            <>
+              <Button onClick={handleSaveChanges} variant="default">Guardar Cambios</Button>
+              <Button onClick={handleEditToggle} variant="outline">Cancelar</Button>
+            </>
+          )}
+        </div>
+      )}
+
+      {pageData.title && !isEditing && (
+        <h1 className="text-3xl md:text-4xl font-bold mb-6" style={{ color: pageData.titleColor }}>
+          {pageData.title}
+        </h1>
+      )}
+
+      <DndProvider backend={HTML5Backend}>
+        <Plate editor={editor}>
+          {isEditing ? (
+            <EditorContainer>
+              <Editor variant="demo" />
+            </EditorContainer>
+          ) : (
+            <div className="prose dark:prose-invert max-w-none">
+              <EditorContainer>
+                <Editor variant="demo" readOnly />
+              </EditorContainer>
+            </div>
+          )}
+        </Plate>
+      </DndProvider>
+    </div>
+  );
+};
+
+export default DynamicPage;

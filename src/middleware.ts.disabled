@@ -1,0 +1,11 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+// Este es un middleware simplificado que evita las redirecciones infinitas
+export function middleware(request: NextRequest) {
+  // Permitir todas las solicitudes sin redirecciones
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: []
+};
