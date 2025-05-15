@@ -6,12 +6,12 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import("next").NextConfig} */
 const nextConfig = {
-  // Configuración para exportación estática
-  output: 'export',
-  distDir: 'out',
-  trailingSlash: true,
+  // Comentamos estas líneas para permitir SSR en lugar de exportación estática
+  // output: 'export',
+  // distDir: 'out',
+  // trailingSlash: true,
   images: {
-    unoptimized: true,
+    // unoptimized: true, // No es necesario con SSR
     domains: ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com'],
   },
   // Configuración de ESLint para evitar que los errores detengan la compilación
