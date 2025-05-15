@@ -1,0 +1,23 @@
+# Settings for Backend (on Cloud Run).
+# See https://firebase.google.com/docs/app-hosting/configure#cloud-run
+runConfig:
+  minInstances: 0
+  # maxInstances: 100
+  # concurrency: 80
+  # cpu: 1
+  # memoryMiB: 512
+
+# Environment variables and secrets.
+env:
+  # Configure environment variables.
+  # See https://firebase.google.com/docs/app-hosting/configure#user-defined-environment
+  - variable: OPENAI_API_KEY
+    value: "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"
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Grant access to secrets in Cloud Secret Manager.
+  # See https://firebase.google.com/docs/app-hosting/configure#secret-parameters
+  # - variable: MY_SECRET
+  #   secret: mySecretRef
