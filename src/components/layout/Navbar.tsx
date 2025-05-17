@@ -38,7 +38,8 @@ import {
   FileText,
   ChevronRight,
   LayoutDashboard,
-  Home
+  Home,
+  FolderOpen
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -180,6 +181,14 @@ export default function Navbar() {
                   {renderMenuDropdown(menuTree)}
                 </>
               )}
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/archivos">
+                  <FolderTree className="mr-2 h-4 w-4" />
+                  <span>Archivos</span>
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           
@@ -275,6 +284,18 @@ export default function Navbar() {
                       {renderMobileMenu(menuTree)}
                     </div>
                   )}
+                  
+                  <SheetClose asChild>
+                    <Link 
+                      href="/archivos"
+                      className={cn(
+                        "flex items-center py-2",
+                        pathname === "/archivos" ? "font-bold text-primary" : "font-medium"
+                      )}
+                    >
+                      <FolderTree className="mr-2 h-4 w-4" /> Archivos
+                    </Link>
+                  </SheetClose>
                   
                   {isAdmin && (
                     <div className="pt-4 mt-4 border-t">

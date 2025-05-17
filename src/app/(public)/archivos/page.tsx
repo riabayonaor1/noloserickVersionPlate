@@ -2,23 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getFileItems, buildFileTree } from '@/lib/firestoreService';
+import { getFileItems, buildFileTree, FileItem } from '@/lib/firestoreService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/breadcrumb';
 import { ChevronRight, File, Folder, Eye, Download, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PublicFileViewer() {
   const params = useParams();
   const router = useRouter();
-  const [fileItems, setFileItems] = useState([]);
-  const [folderTree, setFolderTree] = useState([]);
-  const [currentFolder, setCurrentFolder] = useState(null);
-  const [breadcrumbs, setBreadcrumbs] = useState([]);
+  const [fileItems, setFileItems] = useState<FileItem[]>([]);
+  const [folderTree, setFolderTree] = useState<FileItem[]>([]);
+  const [currentFolder, setCurrentFolder] = useState<FileItem | null>(null);
+  const [breadcrumbs, setBreadcrumbs] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const folderId = params.folderId || null;
+  const folderId = params.folderId ? String(params.folderId) : null;
   
   useEffect(() => {
     const fetchFileItems = async () => {
@@ -34,10 +33,10 @@ export default function PublicFileViewer() {
         // Encontrar la carpeta actual
         if (folderId) {
           const folder = items.find(item => item.id === folderId);
-          setCurrentFolder(folder);
+          setCurrentFolder(folder || null);
           
           // Construir ruta de breadcrumbs
-          const breadcrumbPath = [];
+          const breadcrumbPath: FileItem[] = [];
           let currentFolderId = folder?.parentId;
           
           while (currentFolderId) {
@@ -75,7 +74,7 @@ export default function PublicFileViewer() {
   };
   
   // Formatear tamaño de archivo
-  const formatFileSize = (size) => {
+  const formatFileSize = (size?: number | null) => {
     if (!size) return '';
     
     if (size < 1024) {
@@ -99,30 +98,37 @@ export default function PublicFileViewer() {
   
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Archivos Públicos</h1>
-      
-      <div className="mb-6">
-        <Breadcrumb>
-          <BreadcrumbItem>
-            <BreadcrumbLink as={Link} href="/archivos">
+      <div className="bg-muted p-4 rounded-lg mb-6">
+        <h1 className="text-3xl font-bold mb-2">Archivos</h1>
+        <p className="text-muted-foreground mb-4">
+          Aquí encontrará todos los archivos públicos disponibles para descargar o visualizar organizados por categorías.
+        </p>
+        
+        <div className="bg-background p-3 rounded-md border">
+          <div className="flex items-center space-x-2">
+            <Link href="/archivos" className="text-sm hover:underline">
               Inicio
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          
-          {breadcrumbs.map((folder, index) => (
-            <BreadcrumbItem key={folder.id}>
-              <BreadcrumbLink as={Link} href={`/archivos/${folder.id}`}>
-                {folder.name}
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-          ))}
-          
-          {currentFolder && (
-            <BreadcrumbItem>
-              <BreadcrumbLink>{currentFolder.name}</BreadcrumbLink>
-            </BreadcrumbItem>
-          )}
-        </Breadcrumb>
+            </Link>
+            
+            {breadcrumbs.map((folder) => (
+              <div key={folder.id} className="flex items-center">
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <Link href={`/archivos/${folder.id}`} className="text-sm hover:underline ml-1">
+                  {folder.name}
+                </Link>
+              </div>
+            ))}
+            
+            {currentFolder && (
+              <div className="flex items-center">
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm ml-1 text-muted-foreground font-medium">
+                  {currentFolder.name}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       
       {currentFolder && (
