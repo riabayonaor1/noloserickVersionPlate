@@ -35,14 +35,14 @@ export function TocElement(props: PlateElementProps) {
     <PlateElement {...props} className="mb-1 p-0">
       <div contentEditable={false}>
         {headingList.length > 0 ? (
-          headingList.map((item) => (
+          headingList.map((item, index) => (
             <Button
-              key={item.id}
+              key={item.id || `heading-${index}-${item.title}`}
               variant="ghost"
               className={headingItemVariants({
                 depth: item.depth as 1 | 2 | 3,
               })}
-              onClick={(e) => btnProps.onClick(e, item, 'smooth')}
+              onClick={() => btnProps.onClick(new MouseEvent('click'), item, 'smooth')}
               aria-current
             >
               {item.title}

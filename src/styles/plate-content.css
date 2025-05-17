@@ -1,0 +1,396 @@
+/* Estilos para contenedor principal */
+.plate-content-view {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.9);
+  max-width: 100%;
+}
+
+/* Estilos específicos para PlateRenderer */
+.plate-content-wrapper {
+  width: 100%;
+}
+
+/* Estilos específicos para PlateViewerContent */
+.plate-content-readonly {
+  min-height: auto !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* Estilos para el renderizado estático */
+.plate-content-static {
+  padding: 0 !important;
+  background-color: transparent !important;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+/* Estilos para HTML generado por serializeHtml */
+.plate-html-content {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+/* Quitar borde de foco */
+[data-slate-editor] {
+  outline: none !important;
+}
+
+.plate-content-readonly [data-slate-editor="true"] {
+  padding: 0 !important;
+}
+
+/* Estilos para encabezados */
+.plate-content-view h1,
+.plate-content-view .plate-h1 {
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  letter-spacing: -0.025em;
+}
+
+.plate-content-view h2,
+.plate-content-view .plate-h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  letter-spacing: -0.025em;
+}
+
+.plate-content-view h3,
+.plate-content-view .plate-h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.plate-content-view h4,
+.plate-content-view .plate-h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.plate-content-view h5,
+.plate-content-view .plate-h5 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.plate-content-view h6,
+.plate-content-view .plate-h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+/* Estilos para párrafos */
+.plate-content-view p {
+  margin-bottom: 1rem;
+}
+
+/* Estilos para tablas */
+.plate-content-view table,
+.plate-content-view .plate-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.875rem;
+}
+
+.plate-content-view table th,
+.plate-content-view table td,
+.plate-content-view .plate-table-th,
+.plate-content-view .plate-table-td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.plate-content-view table th,
+.plate-content-view .plate-table-th {
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Estilos para ecuaciones */
+.plate-content-view .math-inline,
+.plate-content-view .plate-equation-inline {
+  font-style: normal;
+  padding: 0 0.1em;
+}
+
+.plate-content-view .math-display,
+.plate-content-view .plate-equation-block {
+  display: block;
+  margin: 1rem 0;
+  padding: 1rem;
+  text-align: center;
+  overflow-x: auto;
+}
+
+/* Estilos para bloques de código */
+.plate-content-view pre {
+  background-color: #f9fafb;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  margin: 1.5rem 0;
+}
+
+.plate-content-view code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.875em;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+}
+
+.plate-content-view pre code {
+  background-color: transparent;
+  padding: 0;
+  font-size: 0.875rem;
+  color: #334155;
+}
+
+.plate-content-view .plate-code-block {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  margin: 1.5rem 0;
+  overflow: hidden;
+}
+
+.plate-content-view .plate-code-header {
+  padding: 0.5rem 1rem;
+  background-color: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 
+    'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-align: right;
+}
+
+.plate-content-view .plate-code-content {
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+/* Estilos para blockquotes */
+.plate-content-view blockquote,
+.plate-content-view .plate-blockquote {
+  border-left: 4px solid #3b82f6;
+  padding: 0.5rem 0 0.5rem 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: #4b5563;
+  background-color: #f3f4f6;
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+/* Estilos para callouts */
+.plate-content-view .callout,
+.plate-content-view .plate-callout {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background-color: #f3f4f6;
+  border-left: 4px solid #9ca3af;
+}
+
+.plate-content-view .callout-icon,
+.plate-content-view .plate-callout-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.plate-content-view .callout-content,
+.plate-content-view .plate-callout-content {
+  flex-grow: 1;
+}
+
+/* Estilos para toggles */
+.plate-content-view details.toggle,
+.plate-content-view .plate-toggle {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  margin: 1.5rem 0;
+  overflow: hidden;
+}
+
+.plate-content-view details.toggle summary,
+.plate-content-view .plate-toggle-summary {
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid transparent;
+}
+
+.plate-content-view details.toggle summary::before,
+.plate-content-view .plate-toggle-summary::before {
+  content: "▶";
+  font-size: 0.75rem;
+  margin-right: 0.5rem;
+  color: #6b7280;
+  transition: transform 0.2s;
+}
+
+.plate-content-view details.toggle[open] summary::before,
+.plate-content-view .plate-toggle[open] .plate-toggle-summary::before {
+  transform: rotate(90deg);
+}
+
+.plate-content-view details.toggle[open] summary,
+.plate-content-view .plate-toggle[open] .plate-toggle-summary {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.plate-content-view details.toggle > div,
+.plate-content-view .plate-toggle-content {
+  padding: 1rem;
+  background-color: #fff;
+}
+
+/* Estilos para listas */
+.plate-content-view ul,
+.plate-content-view ol {
+  margin-bottom: 1rem;
+  padding-left: 2rem;
+}
+
+/* Estilos para listas de verificación */
+.plate-content-view .plate-checklist-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.25rem;
+}
+
+.plate-content-view .plate-checklist-item input[type="checkbox"] {
+  margin-right: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* Estilos para tabla de contenidos */
+.plate-content-view .table-of-contents,
+.plate-content-view .plate-toc {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin: 1.5rem 0;
+}
+
+.plate-content-view .table-of-contents h2,
+.plate-content-view .plate-toc-title {
+  font-size: 1.25rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: #374151;
+}
+
+.plate-content-view .table-of-contents ul,
+.plate-content-view .plate-toc-list {
+  padding-left: 1.5rem;
+  margin-bottom: 0;
+}
+
+.plate-content-view .table-of-contents li,
+.plate-content-view .plate-toc-item {
+  margin-bottom: 0.25rem;
+}
+
+.plate-content-view .table-of-contents a,
+.plate-content-view .plate-toc-link {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.plate-content-view .table-of-contents a:hover,
+.plate-content-view .plate-toc-link:hover {
+  text-decoration: underline;
+}
+
+/* Estilos para fechas */
+.plate-content-view time,
+.plate-content-view .plate-date {
+  white-space: nowrap;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+/* Alineación de texto */
+.plate-content-view .text-center {
+  text-align: center;
+}
+
+.plate-content-view .text-right {
+  text-align: right;
+}
+
+.plate-content-view .text-justify {
+  text-align: justify;
+}
+
+.plate-content-view .text-left {
+  text-align: left;
+}
+
+/* Indentación */
+.plate-content-view .indent-1 {
+  padding-left: 2rem;
+}
+
+.plate-content-view .indent-2 {
+  padding-left: 4rem;
+}
+
+.plate-content-view .indent-3 {
+  padding-left: 6rem;
+}
+
+/* Columnas */
+.plate-content-view .column-group,
+.plate-content-view .plate-column-group {
+  display: flex;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+.plate-content-view .column,
+.plate-content-view .plate-column {
+  flex: 1 1 0%;
+}

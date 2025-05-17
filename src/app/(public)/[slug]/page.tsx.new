@@ -39,7 +39,6 @@ export default async function DynamicPage({ params }: { params: { slug: string }
   }
 
   // Renderizamos el componente cliente pasando los datos iniciales
-  // Nota: Ya no pasamos el formato porque siempre usará plateToHtml para renderizar
   return (
     <DynamicPageClient 
       slug={slug} 

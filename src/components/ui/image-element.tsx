@@ -71,7 +71,7 @@ export const ImageElement = withHOC(
                 align,
                 readOnly,
               }}
-              // @ts-expect-error - Ignoramos el error de tipado ya que sabemos que esta propiedad funciona
+              // @ts-ignore - La propiedad onResizeEnd existe en la implementación real pero falta en las definiciones de tipo
               onResizeEnd={handleResizeEnd}
             >
               <ResizeHandle

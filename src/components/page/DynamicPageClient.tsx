@@ -9,7 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Pencil, X, Home, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { convertPlateJsonToHtml } from '@/lib/utils/plateUtils';
+// Importamos el conversor de Plate a HTML desde el punto central
+import { plateToHtml } from '@/lib/converters/plateToHtml';
+// Importamos KaTeX para las ecuaciones matemáticas
+import 'katex/dist/katex.min.css';
 
 interface DynamicPageClientProps {
   slug: string;
@@ -20,7 +23,7 @@ interface DynamicPageClientProps {
 export default function DynamicPageClient({ 
   slug, 
   initialPageData, 
-  initialError 
+  initialError
 }: DynamicPageClientProps) {
   const { currentUser, isAdmin } = useAuth();
   const [page, setPage] = useState<Page | null>(initialPageData);
@@ -29,15 +32,31 @@ export default function DynamicPageClient({
   const [error, setError] = useState<string | null>(initialError);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [savedContent, setSavedContent] = useState<string>(initialPageData?.content || '');
-  const [displayContent, setDisplayContent] = useState<string>('');
+  const [parsedContent, setParsedContent] = useState<any>(null);
+  const [displayHtml, setDisplayHtml] = useState<string | null>(null);
 
   // Función para verificar si un string es JSON válido
-  const isValidJson = useCallback((str: string) => {
+  const isValidJson = useCallback((str: string): boolean => {
     try {
       const parsed = JSON.parse(str);
       return typeof parsed === 'object' && parsed !== null;
     } catch (e) {
       return false;
+    }
+  }, []);
+  
+  // Función para parsear contenido JSON validando el formato
+  const parseContentJSON = useCallback((content: string): any => {
+    try {
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      console.error('El contenido no es un array JSON válido');
+      return [{ type: 'p', children: [{ text: content }] }];
+    } catch (e) {
+      console.error('Error al parsear JSON:', e);
+      return [{ type: 'p', children: [{ text: content }] }];
     }
   }, []);
 
@@ -48,14 +67,40 @@ export default function DynamicPageClient({
       if (initialPageData?.content) {
         try {
           if (isValidJson(initialPageData.content)) {
-            const htmlContent = convertPlateJsonToHtml(initialPageData.content);
-            setDisplayContent(htmlContent);
+            // Parsear el contenido JSON para convertirlo a HTML
+            const contentJSON = typeof initialPageData.content === 'string' 
+              ? parseContentJSON(initialPageData.content) 
+              : initialPageData.content;
+            console.log("Contenido JSON parseado correctamente");
+            setParsedContent(contentJSON);
+            
+            // Convertir el contenido JSON a HTML
+            const htmlContent = plateToHtml(contentJSON);
+            console.log("Contenido JSON convertido a HTML:", htmlContent.substring(0, 100));
+            setDisplayHtml(htmlContent);
+            
+            // Inicializar MathJax después de renderizar
+            setTimeout(() => {
+              if (typeof window !== 'undefined' && window.MathJax) {
+                try {
+                  window.MathJax.typeset();
+                  console.log('MathJax inicializado correctamente');
+                } catch (mathError) {
+                  console.error('Error al inicializar MathJax:', mathError);
+                }
+              }
+            }, 500);
           } else {
-            setDisplayContent(initialPageData.content);
+            // Si no es JSON válido, establecemos el contenido como null
+            setParsedContent(null);
+            setDisplayHtml(null);
+            console.warn("El contenido no es un JSON válido");
           }
         } catch (err) {
-          console.error('Error al convertir contenido a HTML:', err);
-          setDisplayContent(initialPageData.content);
+          console.error('Error al parsear contenido JSON:', err);
+          console.error('Tipo de error:', typeof err, err instanceof Error ? err.message : 'No es un Error');
+          setParsedContent(null);
+          setDisplayHtml(null);
         }
       }
       return;
@@ -78,18 +123,41 @@ export default function DynamicPageClient({
           setPage(pageData);
           setSavedContent(pageData.content);
           
-          // Convertir el contenido JSON a HTML para la visualización
+          // Parsear el contenido JSON para convertirlo a HTML
           if (pageData.content) {
             try {
               if (isValidJson(pageData.content)) {
-                const htmlContent = convertPlateJsonToHtml(pageData.content);
-                setDisplayContent(htmlContent);
+                // Parsear el contenido JSON usando la función mejorada
+                const contentJSON = typeof pageData.content === 'string' 
+                  ? parseContentJSON(pageData.content) 
+                  : pageData.content;
+                setParsedContent(contentJSON);
+                
+                // Convertir el contenido JSON a HTML
+                const htmlContent = plateToHtml(contentJSON);
+                console.log("Contenido JSON convertido a HTML:", htmlContent.substring(0, 100));
+                setDisplayHtml(htmlContent);
+                
+                // Inicializar MathJax después de renderizar
+                setTimeout(() => {
+                  if (typeof window !== 'undefined' && window.MathJax) {
+                    try {
+                      window.MathJax.typeset();
+                      console.log('MathJax inicializado correctamente');
+                    } catch (mathError) {
+                      console.error('Error al inicializar MathJax:', mathError);
+                    }
+                  }
+                }, 500);
               } else {
-                setDisplayContent(pageData.content);
+                setParsedContent(null);
+                setDisplayHtml(null);
+                console.warn("El contenido no es un JSON válido");
               }
             } catch (err) {
-              console.error('Error al convertir contenido a HTML:', err);
-              setDisplayContent(pageData.content);
+              console.error('Error al parsear contenido JSON:', err);
+              setParsedContent(null);
+              setDisplayHtml(null);
             }
           }
         }
@@ -124,14 +192,22 @@ export default function DynamicPageClient({
     }
   };
 
-  // Actualizar el contenido de la página para mostrar
-  const updateDisplayContent = useCallback((content: string) => {
+  // Actualizar el contenido parseado para mostrar
+  const updateParsedContent = useCallback((content: string) => {
     if (!content) return;
 
     try {
       if (isValidJson(content)) {
-        const htmlContent = convertPlateJsonToHtml(content);
-        setDisplayContent(htmlContent);
+        // Parsear el contenido JSON para convertirlo a HTML
+        const contentJSON = typeof content === 'string' 
+          ? parseContentJSON(content) 
+          : content;
+        setParsedContent(contentJSON);
+        
+        // Convertir el contenido JSON a HTML
+        const htmlContent = plateToHtml(contentJSON);
+        console.log("Contenido JSON convertido a HTML:", htmlContent.substring(0, 100));
+        setDisplayHtml(htmlContent);
         
         // Inicializar MathJax para renderizar ecuaciones después de actualizar el contenido
         setTimeout(() => {
@@ -145,12 +221,14 @@ export default function DynamicPageClient({
           }
         }, 500);
       } else {
-        setDisplayContent(content);
+        // Si no es JSON válido, establecemos contenido como nulo
+        setParsedContent(null);
+        setDisplayHtml(null);
       }
     } catch (err) {
       console.error('Error al actualizar contenido de visualización:', err);
     }
-  }, [isValidJson]);
+  }, [isValidJson, parseContentJSON]);
 
   // Manejar guardado de la edición
   const handleSaveEditing = async (newContent: string) => {
@@ -187,7 +265,7 @@ export default function DynamicPageClient({
         setPage(updatedPage);
         
         // Actualizar el contenido de visualización
-        updateDisplayContent(newContent);
+        updateParsedContent(newContent);
         
         toast.success('Cambios guardados con éxito');
         setIsEditing(false);
@@ -325,11 +403,11 @@ export default function DynamicPageClient({
         <h1 className="text-3xl font-bold mb-6 text-center">{page.title}</h1>
         
         <div className="prose dark:prose-invert mx-auto plate-content-view">
-          {displayContent ? (
+          {displayHtml ? (
             <div 
-              dangerouslySetInnerHTML={{ __html: displayContent }} 
               id="plate-content-viewer"
               className="plate-content-full"
+              dangerouslySetInnerHTML={{ __html: displayHtml }}
             />
           ) : (
             <div className="text-center py-8 italic text-gray-500">
@@ -339,80 +417,7 @@ export default function DynamicPageClient({
         </div>
       </div>
 
-      {/* Estilo adicional para asegurar que todos los elementos se rendericen correctamente */}
-      <style jsx global>{`
-        /* Estilos para tablas */
-        .plate-content-view table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 1rem 0;
-        }
-        .plate-content-view table th,
-        .plate-content-view table td {
-          border: 1px solid #ccc;
-          padding: 0.5rem;
-          text-align: left;
-        }
-        .plate-content-view table th {
-          background-color: #f1f1f1;
-          font-weight: bold;
-        }
-        
-        /* Estilos para ecuaciones */
-        .equation-container {
-          overflow-x: auto;
-          padding: 1rem 0;
-        }
-        .tex-math {
-          font-size: 1.2em;
-        }
-        
-        /* Estilos para callouts */
-        .callout {
-          display: flex;
-          border-radius: 0.375rem;
-          padding: 1rem;
-          margin: 1rem 0;
-        }
-        .callout-icon {
-          margin-right: 0.75rem;
-          font-size: 1.25rem;
-        }
-        
-        /* Estilos para toggles */
-        details.toggle {
-          border: 1px solid #e2e8f0;
-          border-radius: 0.375rem;
-          margin: 1rem 0;
-        }
-        details.toggle summary {
-          padding: 0.75rem;
-          cursor: pointer;
-          background-color: #f8fafc;
-          border-bottom: 1px solid transparent;
-        }
-        details.toggle[open] summary {
-          border-bottom: 1px solid #e2e8f0;
-        }
-        details.toggle > div {
-          padding: 0.75rem;
-        }
-        
-        /* Estilos para listas de verificación */
-        .checklist {
-          list-style-type: none;
-          padding-left: 0;
-        }
-        .checklist li {
-          display: flex;
-          align-items: flex-start;
-          margin-bottom: 0.5rem;
-        }
-        .checklist li input[type="checkbox"] {
-          margin-right: 0.5rem;
-          margin-top: 0.25rem;
-        }
-      `}</style>
+      {/* Los estilos se han movido a src/styles/plate-content.css */}
     </div>
   );
 }

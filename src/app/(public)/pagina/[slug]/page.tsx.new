@@ -4,16 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { getPageBySlug, Page as PageType, updatePage } from '@/lib/firestoreService';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
-import { PageRenderer } from '@/components/custom/PageRenderer';
-import { useCreateEditor } from '@/components/editor/use-create-editor';
 import { Plate } from '@udecode/plate/react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { PlateEditor } from '@/components/editor/plate-editor';
+import { Button } from '@/components/ui/button';
+import { useCreateEditor } from '@/components/editor/use-create-editor';
 import { Editor, EditorContainer } from '@/components/ui/editor';
-import type { Value } from '@udecode/plate';
-import 'katex/dist/katex.min.css';
+import { toast } from 'sonner';
 
 interface PageData {
   id: string;
@@ -43,25 +41,9 @@ const DynamicPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [parsedContent, setParsedContent] = useState<Value | null>(null);
   
   // Crear editor para visualización y edición
   const editor = useCreateEditor();
-  
-  // Función para parsear JSON validando el formato
-  const parseContentJSON = (content: string): Value => {
-    try {
-      const parsed = JSON.parse(content);
-      if (Array.isArray(parsed)) {
-        return parsed;
-      }
-      console.error('El contenido no es un array JSON válido');
-      return [{ type: 'p', children: [{ text: content }] }];
-    } catch (e) {
-      console.error('Error al parsear JSON:', e);
-      return [{ type: 'p', children: [{ text: content }] }];
-    }
-  };
 
   useEffect(() => {
     const fetchPageData = async () => {
@@ -92,21 +74,17 @@ const DynamicPage = () => {
           isPublished: page.isPublished,
         });
 
-        // Parsear el contenido JSON para visualización y edición
+        // Inicializar el editor con el contenido de la página
         try {
-          const contentJSON = parseContentJSON(page.content || '');
-          setParsedContent(contentJSON);
-          
-          // Inicializar el editor con el contenido parseado
+          const parsedContent = JSON.parse(page.content);
           if (editor) {
-            editor.children = contentJSON;
+            editor.resetEditor({ nodes: parsedContent });
           }
         } catch (e) {
           console.error('Error al parsear el contenido:', e);
-          // Inicializar con contenido vacío si hay error
-          setParsedContent([{ type: 'p', children: [{ text: '' }] }]);
+          // Si hay un error al parsear, inicializar el editor con contenido vacío
           if (editor) {
-            editor.children = [{ type: 'p', children: [{ text: '' }] }];
+            editor.resetEditor({ nodes: [{ type: 'p', children: [{ text: '' }] }] });
           }
         }
 
@@ -140,7 +118,6 @@ const DynamicPage = () => {
       
       if (success) {
         setPageData(prev => ({ ...prev, content: contentJSON }));
-        setParsedContent(editorValue);
         setIsEditing(false);
         toast.success('Página guardada con éxito');
       } else {
@@ -222,25 +199,21 @@ const DynamicPage = () => {
         </h1>
       )}
 
-      {isEditing ? (
-        <DndProvider backend={HTML5Backend}>
-          <Plate editor={editor}>
+      <DndProvider backend={HTML5Backend}>
+        <Plate editor={editor}>
+          {isEditing ? (
             <EditorContainer>
               <Editor variant="demo" />
             </EditorContainer>
-          </Plate>
-        </DndProvider>
-      ) : (
-        <div className="plate-content-view">
-          {parsedContent ? (
-            <PageRenderer content={parsedContent} />
           ) : (
-            <div className="text-center py-8 italic text-gray-500">
-              No hay contenido disponible para esta página.
+            <div className="prose dark:prose-invert max-w-none">
+              <EditorContainer>
+                <Editor variant="demo" readOnly />
+              </EditorContainer>
             </div>
           )}
-        </div>
-      )}
+        </Plate>
+      </DndProvider>
     </div>
   );
 };

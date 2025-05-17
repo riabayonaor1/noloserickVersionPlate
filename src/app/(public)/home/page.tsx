@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getPageBySlug, updatePage, createPage, getPageById } from '@/lib/firestoreService';
-import { convertPlateJsonToHtml } from '@/lib/utils/plateUtils';
+import { getPageBySlug, updatePage, createPage, getPageById, Page as FirestorePage } from '@/lib/firestoreService';
+import { plateToHtml } from '@/lib/converters/plateToHtml';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Pencil, Settings, Home as HomeIcon } from 'lucide-react';
@@ -11,15 +11,8 @@ import { PlateEditor } from '@/components/editor/plate-editor';
 import { SettingsProvider } from '@/components/editor/settings';
 import { toast } from 'sonner';
 
-interface Page {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  isPublished: boolean;
-  color?: string;
-  titleColor?: string;
-}
+// Using the Page type from firestoreService instead of redefining it
+type Page = FirestorePage;
 
 // Contenido por defecto para el editor de Plate (en formato JSON)
 const defaultPlateContent = JSON.stringify([
@@ -159,7 +152,7 @@ export default function Home() {
         }
         
         // Si logramos parsearlo correctamente, lo convertimos a HTML directamente
-        const generatedHtml = convertPlateJsonToHtml(parsedContent);
+        const generatedHtml = plateToHtml(parsedContent);
         console.log("Contenido arreglado correctamente:", generatedHtml.substring(0, 100));
         return generatedHtml;
       } catch (error) {
@@ -229,7 +222,7 @@ export default function Home() {
         // Si no se pudo arreglar, seguimos con la lógica normal
         if (isValidJson(content)) {
           // Es JSON, convertirlo a HTML
-          const htmlContent = convertPlateJsonToHtml(content);
+          const htmlContent = plateToHtml(content);
           console.log("Contenido JSON convertido a HTML:", htmlContent.substring(0, 100));
           setDisplayContent(htmlContent);
           
@@ -400,7 +393,7 @@ export default function Home() {
     
     // Prueba de convertir el JSON a HTML para verificar que funciona correctamente
     try {
-      const htmlTest = convertPlateJsonToHtml(updatedContent);
+      const htmlTest = plateToHtml(updatedContent);
       console.log("Vista previa de HTML generado:", htmlTest.substring(0, 200));
     } catch (error) {
       console.error("Error al convertir JSON a HTML:", error);
@@ -549,80 +542,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* Estilo adicional para asegurar que todos los elementos se rendericen correctamente */}
-      <style jsx global>{`
-        /* Estilos para tablas */
-        .plate-content-view table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 1rem 0;
-        }
-        .plate-content-view table th,
-        .plate-content-view table td {
-          border: 1px solid #ccc;
-          padding: 0.5rem;
-          text-align: left;
-        }
-        .plate-content-view table th {
-          background-color: #f1f1f1;
-          font-weight: bold;
-        }
-        
-        /* Estilos para ecuaciones */
-        .equation-container {
-          overflow-x: auto;
-          padding: 1rem 0;
-        }
-        .tex-math {
-          font-size: 1.2em;
-        }
-        
-        /* Estilos para callouts */
-        .callout {
-          display: flex;
-          border-radius: 0.375rem;
-          padding: 1rem;
-          margin: 1rem 0;
-        }
-        .callout-icon {
-          margin-right: 0.75rem;
-          font-size: 1.25rem;
-        }
-        
-        /* Estilos para toggles */
-        details.toggle {
-          border: 1px solid #e2e8f0;
-          border-radius: 0.375rem;
-          margin: 1rem 0;
-        }
-        details.toggle summary {
-          padding: 0.75rem;
-          cursor: pointer;
-          background-color: #f8fafc;
-          border-bottom: 1px solid transparent;
-        }
-        details.toggle[open] summary {
-          border-bottom: 1px solid #e2e8f0;
-        }
-        details.toggle > div {
-          padding: 0.75rem;
-        }
-        
-        /* Estilos para listas de verificación */
-        .checklist {
-          list-style-type: none;
-          padding-left: 0;
-        }
-        .checklist li {
-          display: flex;
-          align-items: flex-start;
-          margin-bottom: 0.5rem;
-        }
-        .checklist li input[type="checkbox"] {
-          margin-right: 0.5rem;
-          margin-top: 0.25rem;
-        }
-      `}</style>
+      {/* Los estilos han sido movidos a src/styles/plate-content.css */}
     </div>
   );
 }

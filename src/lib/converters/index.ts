@@ -3,7 +3,7 @@
  */
 
 import type { 
-  MyValue,
+  MyValue
 } from '@/components/editor/plate-types';
 import { createPlateEditor } from '@udecode/plate/react';
 
@@ -14,14 +14,133 @@ import { basePlugins } from '@/config/plate-plugins';
 import {
   deserializeHtml,
   serializeHtml,
-  // Nota: deserializeMarkdown y serializeMarkdown no existen en @udecode/plate directamente
-  // Necesitamos importarlos desde los paquetes correspondientes
   type TElement
 } from '@udecode/plate';
 
-// Importando las funciones markdown desde paquetes específicos si están disponibles
-import { deserializeMd } from '@udecode/plate-markdown';
-import { serializeMd } from '@udecode/plate-markdown';
+// Importando las funciones markdown desde paquetes específicos
+import { deserializeMd, serializeMd } from '@udecode/plate-markdown';
+
+// Importar la función existente de plateToHtml para la exportación
+import { plateToHtml } from './plateToHtml';
+
+// Re-exportar la función plateToHtml para que se pueda usar desde este punto central
+export { plateToHtml };
+
+/**
+ * Objeto que contiene funciones para exportar contenido de Plate a diferentes formatos
+ */
+export const PlateConverters = {
+  /**
+   * Convierte contenido de Plate a HTML usando serializeHtml de Plate
+   */
+  toHtml: async (content: MyValue): Promise<string> => {
+    if (!content || !Array.isArray(content)) {
+      return '';
+    }
+    
+    const editor = createPlateEditor({
+      plugins: basePlugins,
+      value: content,
+    });
+    
+    return serializeHtml(editor, {
+      components: {},
+    });
+  },
+  
+  /**
+   * Convierte contenido de Plate a HTML usando plateToHtml personalizado
+   */
+  toCustomHtml: (content: MyValue | string): string => {
+    try {
+      // Si content es string, asumimos que es JSON serializado
+      if (typeof content === 'string') {
+        return plateToHtml(JSON.parse(content));
+      }
+      return plateToHtml(content);
+    } catch (error) {
+      console.error('Error al convertir a HTML personalizado:', error);
+      return '';
+    }
+  },
+  
+  /**
+   * Convierte contenido de Plate a Markdown
+   */
+  toMarkdown: (content: MyValue): string => {
+    if (!content || !Array.isArray(content)) {
+      return '';
+    }
+    
+    const editor = createPlateEditor({
+      plugins: basePlugins,
+      value: content,
+    });
+    
+    return serializeMd(editor);
+  },
+  
+  /**
+   * Convierte contenido de Plate a texto plano
+   */
+  toText: (content: MyValue): string => {
+    if (!content || !Array.isArray(content)) {
+      return '';
+    }
+    
+    // Función recursiva para extraer texto de nodos
+    const extractText = (nodes: any[]): string => {
+      return nodes.map(node => {
+        if (typeof node.text === 'string') {
+          return node.text;
+        }
+        if (Array.isArray(node.children)) {
+          return extractText(node.children);
+        }
+        return '';
+      }).join('');
+    };
+    
+    return extractText(content);
+  }
+};
+
+/**
+ * Objeto que contiene funciones para importar contenido a formato Plate
+ */
+export const PlateImporter = {
+  /**
+   * Convierte HTML a contenido de Plate
+   */
+  fromHtml: (html: string): MyValue => {
+    if (!html) {
+      return [{ type: 'p', children: [{ text: '' }] }];
+    }
+    
+    const editor = createPlateEditor({
+      plugins: basePlugins,
+    });
+    
+    return deserializeHtml(editor, {
+      element: html,
+    });
+  },
+  
+  /**
+   * Convierte Markdown a contenido de Plate
+   */
+  fromMarkdown: (markdown: string): MyValue => {
+    if (!markdown) {
+      return [{ type: 'p', children: [{ text: '' }] }];
+    }
+    
+    const editor = createPlateEditor({
+      plugins: basePlugins,
+    });
+    
+    return deserializeMd(editor, markdown);
+  }
+};
 
 // Importación para TipTap - Comentado hasta que se instalen las dependencias necesarias
 // import { 

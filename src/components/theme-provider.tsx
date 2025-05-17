@@ -7,12 +7,25 @@ const ThemeContext = createContext({});
 
 interface ThemeProviderProps {
   children: ReactNode;
+  attribute?: string;
+  defaultTheme?: string;
+  enableSystem?: boolean;
+  disableTransitionOnChange?: boolean;
 }
 
-export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({
+  children,
+  attribute = "data-theme",
+  defaultTheme = "light",
+  enableSystem = false,
+  disableTransitionOnChange = false
+}) => {
   // Aquí puedes definir la lógica del tema, como el estado del tema oscuro o claro
   const theme = {
-    mode: 'light', // Cambiar a 'dark' para tema oscuro
+    mode: defaultTheme, // Usar el tema por defecto
+    attribute,
+    enableSystem,
+    disableTransitionOnChange
   };
 
   return (

@@ -15,7 +15,7 @@ import { HexColorInput, HexColorPicker } from 'react-colorful';
 import { Save, X, Eye, Settings } from 'lucide-react';
 
 import { useCreateEditor } from '@/components/editor/use-create-editor';
-import { SettingsDialog } from '@/components/editor/settings';
+import { SettingsDialog, SettingsProvider } from '@/components/editor/settings';
 import { Editor, EditorContainer } from '@/components/ui/editor';
 
 // Extender la interfaz Window para incluir MathJax
@@ -324,7 +324,10 @@ export function PlateEditor({ initialContent, onChange }: PlateEditorProps) {
           </div>
         </div>
         
-        <SettingsDialog />
+        {/* Necesitamos envolver SettingsDialog con SettingsProvider para que tenga acceso al contexto */}
+        <SettingsProvider>
+          <SettingsDialog />
+        </SettingsProvider>
         
         {/* Diálogo de guardado */}
         <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
