@@ -1288,87 +1288,114 @@ const toKebabCase = (str: string): string => {
 };
 
 /**
- * Renderiza un elemento de video
+ * Renderiza un elemento de video de forma responsiva
  * @param node - Nodo de video
  * @returns HTML para el elemento de video
  */
 const renderVideo = (node: PlateNode): string => {
   const { url, width = 640, align = 'center', caption } = node;
-  
   if (!url) return '';
-  
-  // Determinar estilo de alineación
-  const alignStyle = align ? `text-align: ${align};` : '';
-  
-  // Verificar si es un video de YouTube
-  const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+
+  // Estilo de alineación + overflow y padding para separar reproductores
+  const alignStyle = `
+    text-align: ${align};
+    overflow: hidden;
+    padding: 1em 0;
+  `;
+
+  // Wrapper responsivo con proporción 16:9
+  const wrapperStyle = `
+    position: relative;
+    width: 100%;
+    max-width: ${width}px;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+  `;
+
+  // Estilos para iframe o <video>
+  const mediaStyle = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  `;
+
+  // Detectar YouTube
+  const youtubeMatch = url.match(
+    /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
   const youtubeId = youtubeMatch ? youtubeMatch[1] : null;
-  
-  // HTML a construir para el video
-  let videoHtml = '';
-  
+
+  // Detectar Vimeo
+  const vimeoMatch = url.match(
+    /vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/
+  );
+  const vimeoId = vimeoMatch ? vimeoMatch[3] : null;
+
+  let mediaHtml = '';
+
   if (youtubeId) {
-    // Es un video de YouTube
-    videoHtml = `
-<div style="${alignStyle}">
-  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
-    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-      <iframe 
+    // YouTube
+    mediaHtml = `
+      <iframe
         src="https://www.youtube.com/embed/${youtubeId}"
-        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+        style="${mediaStyle}"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowfullscreen
         title="YouTube Video"
       ></iframe>
-    </div>`;
-  } else if (url.includes('vimeo.com')) {
-    // Es un video de Vimeo
-    const vimeoMatch = url.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/);
-    const vimeoId = vimeoMatch ? vimeoMatch[3] : null;
-    
-    if (vimeoId) {
-      videoHtml = `
-<div style="${alignStyle}">
-  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
-    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
-      <iframe 
+    `;
+  } else if (vimeoId) {
+    // Vimeo
+    mediaHtml = `
+      <iframe
         src="https://player.vimeo.com/video/${vimeoId}"
-        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+        style="${mediaStyle}"
         allow="autoplay; fullscreen; picture-in-picture"
         allowfullscreen
         title="Vimeo Video"
       ></iframe>
-    </div>`;
-    }
+    `;
   } else {
-    // Es un video normal (cargado desde dispositivo o URL directa de video)
-    videoHtml = `
-<div style="${alignStyle}">
-  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
-    <video 
-      src="${url}" 
-      controls 
-      preload="auto"
-      class="plate-video" 
-      style="width: 100%; max-width: 100%; border-radius: 4px;"
-    ></video>`;
+    // Video local o URL directa
+    mediaHtml = `
+      <video
+        src="${url}"
+        controls
+        preload="auto"
+        style="${mediaStyle}; object-fit: contain;"
+      ></video>
+    `;
   }
-  
-  // Añadir caption si existe
-  if (caption && Array.isArray(caption) && caption.length > 0) {
-    const captionText = typeof caption[0] === 'string' 
-      ? caption[0] 
-      : extractTextFromNode(caption[0]);
-    
-    videoHtml += `
-    <figcaption style="margin-top: 8px; text-align: center; color: #666; font-size: 0.875rem;">${captionText}</figcaption>`;
+
+  // Construir el HTML completo
+  let html = `
+    <div style="${alignStyle}">
+      <figure class="plate-video-figure" style="margin: 0; display: block; width: 100%; max-width: ${width}px;">
+        <div style="${wrapperStyle}">
+          ${mediaHtml}
+        </div>
+  `;
+
+  // Caption opcional
+  if (caption && Array.isArray(caption) && caption.length) {
+    const captionText =
+      typeof caption[0] === 'string' ? caption[0] : extractTextFromNode(caption[0]);
+    html += `
+        <figcaption style="margin-top: 0.5em; text-align: center; color: #666; font-size: 0.875rem;">
+          ${captionText}
+        </figcaption>
+    `;
   }
-  
-  videoHtml += `
-  </figure>
-</div>`;
-  
-  return videoHtml;
+
+  html += `
+      </figure>
+    </div>
+  `;
+
+  return html;
 };
 
 /**
@@ -1378,21 +1405,20 @@ const renderVideo = (node: PlateNode): string => {
  */
 const renderAudio = (node: PlateNode): string => {
   const { url } = node;
-  
   if (!url) return '';
-  
-  // Construir HTML para audio
+
   return `
-<figure class="plate-audio-figure" style="margin: 1em 0;">
-  <div style="height: 64px;">
-    <audio 
-      src="${url}" 
-      controls 
-      class="plate-audio" 
-      style="width: 100%;"
-    ></audio>
-  </div>
-</figure>`;
+    <figure class="plate-audio-figure" style="margin: 1em 0;">
+      <div style="height: 64px;">
+        <audio
+          src="${url}"
+          controls
+          class="plate-audio"
+          style="width: 100%;"
+        ></audio>
+      </div>
+    </figure>
+  `;
 };
 
 /**
@@ -1402,24 +1428,23 @@ const renderAudio = (node: PlateNode): string => {
  */
 const renderFile = (node: PlateNode): string => {
   const { url, name = 'archivo' } = node;
-  
   if (!url) return '';
-  
-  // Construir HTML para enlace de descarga con icono
+
   return `
-<div class="plate-file" style="margin: 1em 0;">
-  <a 
-    href="${url}" 
-    download="${name}" 
-    target="_blank" 
-    rel="noopener noreferrer" 
-    style="display: inline-flex; align-items: center; padding: 8px 12px; background-color: #f3f4f6; border-radius: 4px; text-decoration: none; color: inherit;"
-  >
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-      <polyline points="14 2 14 8 20 8"></polyline>
-    </svg>
-    <span>${name}</span>
-  </a>
-</div>`;
+    <div class="plate-file" style="margin: 1em 0;">
+      <a
+        href="${url}"
+        download="${name}"
+        target="_blank"
+        rel="noopener noreferrer"
+        style="display: inline-flex; align-items: center; padding: 8px 12px; background-color: #f3f4f6; border-radius: 4px; text-decoration: none; color: inherit;"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+        <span>${name}</span>
+      </a>
+    </div>
+  `;
 };
