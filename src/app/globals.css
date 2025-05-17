@@ -1,14 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@import "tailwind-scrollbar-hide";
+@plugin "tailwind-scrollbar-hide";
 @import "tw-animate-css";
 
-/* Dark mode styles will be applied via the .dark class */
+@custom-variant dark (&:is(.dark *));
 
-@layer theme {
-  :root {
+@theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: 'var(--font-sans)', 'ui-sans-serif', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI Variable Display', 'Segoe UI', 'Helvetica', 'Apple Color Emoji', 'Arial', 'sans-serif', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
@@ -45,10 +42,10 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --font-heading: 'var(--font-heading)', 'ui-sans-serif', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI Variable Display', 'Segoe UI', 'Helvetica', 'Apple Color Emoji', 'Arial', 'sans-serif', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   --color-highlight: var(--highlight);
   --color-brand: var(--brand);
-  }
 }
 
 :root {
@@ -130,11 +127,5 @@
   }
   body {
     @apply bg-background text-foreground;
-  }
-  
-  /* Asegurar que cualquier contenido con tamaño fijo se adapte al contenedor */
-  [style*="width:"] {
-    max-width: 100% !important;
-    box-sizing: border-box !important;
   }
 }
