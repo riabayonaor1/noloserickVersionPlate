@@ -632,11 +632,12 @@ const renderNode = (node: PlateNode): string => {
     if (node.code) text = `<code>${text}</code>`;
     if (node.kbd) text = `<kbd>${text}</kbd>`;
     
-    // Aplicar color y fondo si existen
-    if (node.color || node.backgroundColor) {
+    // Aplicar color, fondo y tamaño de fuente si existen
+    if (node.color || node.backgroundColor || node.fontSize) {
       const styles: string[] = [];
       if (node.color) styles.push(`color: ${node.color}`);
       if (node.backgroundColor) styles.push(`background-color: ${node.backgroundColor}`);
+      if (node.fontSize) styles.push(`font-size: ${node.fontSize}`);
       text = `<span style="${styles.join('; ')}">${text}</span>`;
     }
     
@@ -668,7 +669,13 @@ const renderNode = (node: PlateNode): string => {
       const headingText = extractTextFromNode(node);
       const headingId = node.id || generateIdFromText(headingText);
       
-      return `<${node.type} id="${headingId}" class="${headingClasses.join(' ')}">${renderChildren(node.children)}</${node.type}>`;
+      // Añadir estilos si existen (especialmente fontSize)
+      let styleAttribute = '';
+      if (node.fontSize) {
+        styleAttribute = ` style="font-size: ${node.fontSize}"`;
+      }
+      
+      return `<${node.type} id="${headingId}" class="${headingClasses.join(' ')}"${styleAttribute}>${renderChildren(node.children)}</${node.type}>`;
     case 'p':
       // Verificar si el párrafo debería ser un elemento de lista
       if (node.listStyleType === 'todo') {
