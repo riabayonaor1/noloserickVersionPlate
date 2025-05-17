@@ -123,7 +123,7 @@ export const PlateImporter = {
     
     return deserializeHtml(editor, {
       element: html,
-    });
+    }) as MyValue;
   },
   
   /**
@@ -403,7 +403,7 @@ export class PlateExporter {
    * @param htmlContent - Contenido HTML
    * @returns Contenido en formato JSON de Plate
    */
-  static fromHTML(htmlContent: string): any {
+  static fromHTML(htmlContent: string): MyValue {
     try {
       // Crear un editor temporal
       const editor = this.createTempEditor();
@@ -415,7 +415,7 @@ export class PlateExporter {
       // Deserializar el contenido HTML
       const fragment = deserializeHtml(editor, {
         element: doc.body,
-      });
+      }) as MyValue;
       
       return fragment;
     } catch (error) {

@@ -1310,8 +1310,8 @@ const renderVideo = (node: PlateNode): string => {
   if (youtubeId) {
     // Es un video de YouTube
     videoHtml = `
-<div style="${alignStyle}">
-  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
+<div style="${alignStyle}" class="responsive-video-container">
+  <figure class="plate-video-figure" style="margin: 0; display: block; width: 100%; max-width: 100%;">
     <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
       <iframe 
         src="https://www.youtube.com/embed/${youtubeId}"
@@ -1328,8 +1328,8 @@ const renderVideo = (node: PlateNode): string => {
     
     if (vimeoId) {
       videoHtml = `
-<div style="${alignStyle}">
-  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
+<div style="${alignStyle}" class="responsive-video-container">
+  <figure class="plate-video-figure" style="margin: 0; display: block; width: 100%; max-width: 100%;">
     <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
       <iframe 
         src="https://player.vimeo.com/video/${vimeoId}"
@@ -1343,8 +1343,8 @@ const renderVideo = (node: PlateNode): string => {
   } else {
     // Es un video normal (cargado desde dispositivo o URL directa de video)
     videoHtml = `
-<div style="${alignStyle}">
-  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
+<div style="${alignStyle}" class="responsive-video-container">
+  <figure class="plate-video-figure" style="margin: 0; display: block; width: 100%; max-width: 100%;">
     <video 
       src="${url}" 
       controls 
@@ -1383,13 +1383,13 @@ const renderAudio = (node: PlateNode): string => {
   
   // Construir HTML para audio
   return `
-<figure class="plate-audio-figure" style="margin: 1em 0;">
-  <div style="height: 64px;">
+<figure class="plate-audio-figure" style="margin: 1em 0; width: 100%; max-width: 100%;">
+  <div style="min-height: 40px; max-width: 100%;">
     <audio 
       src="${url}" 
       controls 
       class="plate-audio" 
-      style="width: 100%;"
+      style="width: 100%; max-width: 100%;"
     ></audio>
   </div>
 </figure>`;
@@ -1407,19 +1407,19 @@ const renderFile = (node: PlateNode): string => {
   
   // Construir HTML para enlace de descarga con icono
   return `
-<div class="plate-file" style="margin: 1em 0;">
+<div class="plate-file" style="margin: 1em 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis;">
   <a 
     href="${url}" 
     download="${name}" 
     target="_blank" 
     rel="noopener noreferrer" 
-    style="display: inline-flex; align-items: center; padding: 8px 12px; background-color: #f3f4f6; border-radius: 4px; text-decoration: none; color: inherit;"
+    style="display: flex; align-items: center; padding: 8px 12px; background-color: #f3f4f6; border-radius: 4px; text-decoration: none; color: inherit; max-width: 100%; overflow: hidden;"
   >
-    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;">
       <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
       <polyline points="14 2 14 8 20 8"></polyline>
     </svg>
-    <span>${name}</span>
+    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${name}</span>
   </a>
 </div>`;
 };

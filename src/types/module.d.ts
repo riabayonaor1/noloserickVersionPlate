@@ -46,7 +46,7 @@ declare module '@/lib/firestoreService' {
 }
 
 declare module '@/components/editor/use-create-editor' {
-  import { PlateEditor } from '@udecode/plate';
+  import { Editor as PlateEditor } from '@udecode/plate';
   export const useCreateEditor: () => PlateEditor;
 }
 

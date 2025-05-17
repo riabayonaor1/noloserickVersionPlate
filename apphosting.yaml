@@ -19,6 +19,14 @@ env:
     availability:
       - BUILD
       - RUNTIME
+      
+  # Configuración para UploadThing usando secreto seguro
+  # Permisos configurados con: firebase apphosting:secrets:grantaccess uploadthing-token --backend rick-plataforma-plate
+  - variable: UPLOADTHING_TOKEN
+    secret: uploadthing-token
+    availability:
+      - BUILD
+      - RUNTIME
 
   # Variables públicas para Next.js (accesibles en el cliente)
   - variable: NEXT_PUBLIC_FIREBASE_API_KEY
