@@ -50,6 +50,9 @@ export default function Navbar() {
   const [menuTree, setMenuTree] = useState<MenuItem[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Estado para controlar qué carpetas están expandidas en el menú móvil
+  const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
+
   // Cargar elementos del menú
   useEffect(() => {
     const fetchMenu = async () => {
@@ -90,7 +93,7 @@ export default function Navbar() {
         return (
           <DropdownMenuSub key={item.id}>
             <DropdownMenuSubTrigger>
-              <FolderTree className="mr-2 h-4 w-4" />
+              <FolderOpen className="mr-2 h-4 w-4" />
               <span>{item.name}</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
@@ -114,17 +117,38 @@ export default function Navbar() {
     });
   };
 
-  // Renderizar elementos del menú de forma recursiva (versión móvil)
+  // Función para alternar el estado de expansión de una carpeta
+  const toggleFolder = (folderId: string) => {
+    setExpandedFolders(prev => ({
+      ...prev,
+      [folderId]: !prev[folderId]
+    }));
+  };
+
+  // Renderizar elementos del menú de forma recursiva (versión móvil) con expansión/colapso
   const renderMobileMenu = (items: MenuItem[] = [], level = 0) => {
     return items.map((item) => {
       if (item.type === 'folder' && item.children && item.children.length > 0) {
+        const isExpanded = expandedFolders[item.id] || false;
+        
         return (
           <div key={item.id} className="pl-4">
-            <div className="flex items-center py-2 font-medium">
-              <FolderTree className="mr-2 h-4 w-4" />
+            <div 
+              className="flex items-center py-2 font-medium cursor-pointer"
+              onClick={() => toggleFolder(item.id)}
+            >
+              <FolderOpen className="mr-2 h-4 w-4" />
               <span>{item.name}</span>
+              <ChevronRight className={cn(
+                "ml-auto h-4 w-4 transition-transform",
+                isExpanded ? "rotate-90" : ""
+              )} />
             </div>
-            {renderMobileMenu(item.children, level + 1)}
+            {isExpanded && (
+              <div className="pl-2 border-l-2 border-gray-200 ml-2">
+                {renderMobileMenu(item.children, level + 1)}
+              </div>
+            )}
           </div>
         );
       } else if (item.type === 'page' && item.slug) {
