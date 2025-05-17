@@ -567,6 +567,52 @@ export const plateToHtml = (jsonContent: any, standalone: boolean = false): stri
       padding: 0;
       border-radius: 0;
     }
+    
+    /* Estilos para elementos multimedia */
+    /* Video */
+    .plate-video-figure {
+      margin: 1.5rem 0;
+      position: relative;
+      display: inline-block;
+    }
+    .plate-video {
+      max-width: 100%;
+      border-radius: 0.375rem;
+    }
+    
+    /* Audio */
+    .plate-audio-figure {
+      margin: 1.5rem 0;
+      width: 100%;
+    }
+    .plate-audio {
+      width: 100%;
+      height: 54px;
+      border-radius: 0.375rem;
+    }
+    
+    /* Archivo */
+    .plate-file {
+      margin: 1rem 0;
+    }
+    .plate-file a {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.625rem 1rem;
+      background-color: #f3f4f6;
+      border-radius: 0.375rem;
+      text-decoration: none;
+      color: #374151;
+      transition: background-color 0.2s;
+      border: 1px solid #e5e7eb;
+    }
+    .plate-file a:hover {
+      background-color: #e5e7eb;
+    }
+    .plate-file svg {
+      margin-right: 0.5rem;
+      flex-shrink: 0;
+    }
   </style>
   <script>
     MathJax = {
@@ -743,6 +789,12 @@ const renderNode = (node: PlateNode): string => {
       return renderColumn(node);
     case 'date':
       return renderDate(node);
+    case 'video':
+      return renderVideo(node);
+    case 'audio':
+      return renderAudio(node);
+    case 'file':
+      return renderFile(node);
     default:
       // Para cualquier otro tipo, renderizar un div con los hijos
       return renderElement('div', node);
@@ -1233,4 +1285,141 @@ const escapeHtml = (text?: string): string => {
  */
 const toKebabCase = (str: string): string => {
   return str.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+};
+
+/**
+ * Renderiza un elemento de video
+ * @param node - Nodo de video
+ * @returns HTML para el elemento de video
+ */
+const renderVideo = (node: PlateNode): string => {
+  const { url, width = 640, align = 'center', caption } = node;
+  
+  if (!url) return '';
+  
+  // Determinar estilo de alineación
+  const alignStyle = align ? `text-align: ${align};` : '';
+  
+  // Verificar si es un video de YouTube
+  const youtubeMatch = url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  const youtubeId = youtubeMatch ? youtubeMatch[1] : null;
+  
+  // HTML a construir para el video
+  let videoHtml = '';
+  
+  if (youtubeId) {
+    // Es un video de YouTube
+    videoHtml = `
+<div style="${alignStyle}">
+  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+      <iframe 
+        src="https://www.youtube.com/embed/${youtubeId}"
+        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+        title="YouTube Video"
+      ></iframe>
+    </div>`;
+  } else if (url.includes('vimeo.com')) {
+    // Es un video de Vimeo
+    const vimeoMatch = url.match(/vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/([^\/]*)\/videos\/|album\/(\d+)\/video\/|)(\d+)(?:$|\/|\?)/);
+    const vimeoId = vimeoMatch ? vimeoMatch[3] : null;
+    
+    if (vimeoId) {
+      videoHtml = `
+<div style="${alignStyle}">
+  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
+    <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+      <iframe 
+        src="https://player.vimeo.com/video/${vimeoId}"
+        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowfullscreen
+        title="Vimeo Video"
+      ></iframe>
+    </div>`;
+    }
+  } else {
+    // Es un video normal (cargado desde dispositivo o URL directa de video)
+    videoHtml = `
+<div style="${alignStyle}">
+  <figure class="plate-video-figure" style="margin: 0; display: inline-block; width: ${width}px;">
+    <video 
+      src="${url}" 
+      controls 
+      preload="auto"
+      class="plate-video" 
+      style="width: 100%; max-width: 100%; border-radius: 4px;"
+    ></video>`;
+  }
+  
+  // Añadir caption si existe
+  if (caption && Array.isArray(caption) && caption.length > 0) {
+    const captionText = typeof caption[0] === 'string' 
+      ? caption[0] 
+      : extractTextFromNode(caption[0]);
+    
+    videoHtml += `
+    <figcaption style="margin-top: 8px; text-align: center; color: #666; font-size: 0.875rem;">${captionText}</figcaption>`;
+  }
+  
+  videoHtml += `
+  </figure>
+</div>`;
+  
+  return videoHtml;
+};
+
+/**
+ * Renderiza un elemento de audio
+ * @param node - Nodo de audio
+ * @returns HTML para el elemento de audio
+ */
+const renderAudio = (node: PlateNode): string => {
+  const { url } = node;
+  
+  if (!url) return '';
+  
+  // Construir HTML para audio
+  return `
+<figure class="plate-audio-figure" style="margin: 1em 0;">
+  <div style="height: 64px;">
+    <audio 
+      src="${url}" 
+      controls 
+      class="plate-audio" 
+      style="width: 100%;"
+    ></audio>
+  </div>
+</figure>`;
+};
+
+/**
+ * Renderiza un elemento de archivo para descarga
+ * @param node - Nodo de archivo
+ * @returns HTML para el elemento de archivo
+ */
+const renderFile = (node: PlateNode): string => {
+  const { url, name = 'archivo' } = node;
+  
+  if (!url) return '';
+  
+  // Construir HTML para enlace de descarga con icono
+  return `
+<div class="plate-file" style="margin: 1em 0;">
+  <a 
+    href="${url}" 
+    download="${name}" 
+    target="_blank" 
+    rel="noopener noreferrer" 
+    style="display: inline-flex; align-items: center; padding: 8px 12px; background-color: #f3f4f6; border-radius: 4px; text-decoration: none; color: inherit;"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px;">
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+    </svg>
+    <span>${name}</span>
+  </a>
+</div>`;
 };

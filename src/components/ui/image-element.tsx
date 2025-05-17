@@ -8,7 +8,7 @@ import type { PlateElementProps } from '@udecode/plate/react';
 
 import { useDraggable } from '@udecode/plate-dnd';
 import { Image, ImagePlugin, useMediaState } from '@udecode/plate-media/react';
-import { ResizableProvider, useResizableValue } from '@udecode/plate-resizable';
+import { ResizableProvider, ResizeHandleProvider, useResizableValue, type ResizeEvent } from '@udecode/plate-resizable';
 import { PlateElement, useEditorRef, withHOC } from '@udecode/plate/react';
 
 import { cn } from '@/lib/utils';
@@ -50,29 +50,34 @@ export const ImageElement = withHOC(
       }
     }, [editor, props.element, align]);
 
-    // Manejar el evento de finalización de redimensionado
-    const handleResizeEnd = () => {
-      if (!readOnly) {
-        updateImageSize();
-      }
-    };
-
     const { isDragging, handleRef } = useDraggable({
       element: props.element,
     });
+
+    // Configuramos un manejador de evento usando ResizeHandleProvider
+    const handleResizeContextProvider = (
+      <ResizeHandleProvider
+        onResize={(event) => {
+          if (!readOnly && event.finished) {
+            updateImageSize();
+          }
+        }}
+      >
+        {null}
+      </ResizeHandleProvider>
+    );
 
     return (
       <MediaPopover plugin={ImagePlugin}>
         <PlateElement {...props} className="py-2.5">
           <figure className="group relative m-0" contentEditable={false}>
+            {handleResizeContextProvider}
             <Resizable
               align={align}
               options={{
                 align,
                 readOnly,
               }}
-              // @ts-ignore - La propiedad onResizeEnd existe en la implementación real pero falta en las definiciones de tipo
-              onResizeEnd={handleResizeEnd}
             >
               <ResizeHandle
                 className={mediaResizeHandleVariants({ direction: 'left' })}
