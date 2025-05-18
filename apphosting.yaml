@@ -11,9 +11,6 @@ runConfig:
 env:
   # Configuración para OpenAI API usando secretos seguros
   # La clave API está almacenada como un secreto en Cloud Secret Manager
-  # con el nombre "openai-api-key". 
-  # Permisos configurados con: firebase apphosting:secrets:grantaccess openai-api-key --backend rick-plataforma-plate
-  # La API key está segura y no expuesta en el código fuente
   - variable: OPENAI_API_KEY
     secret: openai-api-key
     availability:
@@ -21,7 +18,6 @@ env:
       - RUNTIME
       
   # Configuración para UploadThing usando secreto seguro
-  # Permisos configurados con: firebase apphosting:secrets:grantaccess uploadthing-token --backend rick-plataforma-plate
   - variable: UPLOADTHING_TOKEN
     secret: uploadthing-token
     availability:
@@ -41,6 +37,12 @@ env:
       - BUILD
       - RUNTIME
       
+  - variable: NEXT_PUBLIC_FIREBASE_DATABASE_URL
+    value: "https://impala-a3686-default-rtdb.firebaseio.com"
+    availability:
+      - BUILD
+      - RUNTIME
+      
   - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
     value: "impala-a3686"
     availability:
@@ -49,6 +51,24 @@ env:
       
   - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
     value: "impala-a3686.appspot.com"
+    availability:
+      - BUILD
+      - RUNTIME
+      
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "496237737617"
+    availability:
+      - BUILD
+      - RUNTIME
+      
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:496237737617:web:0f6f44d32bb5f2c897f130"
+    availability:
+      - BUILD
+      - RUNTIME
+      
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: "G-WF5Q5TGW9D"
     availability:
       - BUILD
       - RUNTIME
