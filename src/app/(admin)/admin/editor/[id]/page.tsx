@@ -72,15 +72,14 @@ export default function EditPage() {
         try {
           const parsedContent = JSON.parse(page.content);
           if (editor) {
-            // @ts-ignore - Ignorar error de tipo para resetEditor
-            editor.resetEditor({ nodes: parsedContent });
+            // Asignar directamente al editor.children en lugar de usar resetEditor
+            editor.children = parsedContent;
           }
         } catch (e) {
           console.error('Error al parsear el contenido:', e);
           // Si hay un error al parsear, inicializar el editor con contenido vacío
           if (editor) {
-            // @ts-ignore - Ignorar error de tipo para resetEditor
-            editor.resetEditor({ nodes: [{ type: 'p', children: [{ text: '' }] }] });
+            editor.children = [{ type: 'p', children: [{ text: '' }] }];
           }
         }
       } catch (error) {
