@@ -261,11 +261,6 @@ export default function AdminPages() {
                       <Eye className="h-4 w-4 mr-1" /> Ver
                     </Button>
                   </Link>
-                  <Link href={`/admin/editor/${page.id}`} passHref>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-1" /> Editar
-                    </Button>
-                  </Link>
                   <Button 
                     variant="destructive" 
                     size="sm" 
