@@ -8,7 +8,8 @@ import {
   FileText, 
   Menu, 
   FolderOpen, 
-  LogOut 
+  LogOut,
+  Settings
 } from 'lucide-react';
 import { logout } from '@/lib/authService';
 import { cn } from '@/lib/utils';
@@ -84,6 +85,12 @@ export const AdminSidebar: React.FC = () => {
           icon={<FolderOpen size={18} />} 
           label="Archivos" 
           active={pathname === '/admin/archivos-gestion'} 
+        />
+        <SidebarItem 
+          href="/admin/settings" 
+          icon={<Settings size={18} />} 
+          label="Settings" 
+          active={pathname === '/admin/settings'} 
         />
       </nav>
       
