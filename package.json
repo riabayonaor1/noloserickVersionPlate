@@ -41,7 +41,7 @@
     "@radix-ui/react-tooltip": "^1.2.6",
     "@udecode/cmdk": "0.2.1",
     "@udecode/cn": "48.0.3",
-    "@udecode/plate": "48.0.3",
+    "@udecode/plate": "48.0.5",
     "@udecode/plate-ai": "48.0.2",
     "@udecode/plate-alignment": "48.0.0",
     "@udecode/plate-autoformat": "48.0.0",

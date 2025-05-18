@@ -34,6 +34,7 @@ export default function DynamicPageClient({
   const [savedContent, setSavedContent] = useState<string>(initialPageData?.content || '');
   const [parsedContent, setParsedContent] = useState<any>(null);
   const [displayHtml, setDisplayHtml] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   // Función para verificar si un string es JSON válido
   const isValidJson = useCallback((str: string): boolean => {
@@ -60,52 +61,17 @@ export default function DynamicPageClient({
     }
   }, []);
 
-  // Cargar la página por su slug si no se proporcionaron datos iniciales
+  // Marcar componente como montado
   useEffect(() => {
-    // Si ya tenemos datos o un error inicial, no necesitamos cargar nada
-    if (initialPageData || initialError) {
-      if (initialPageData?.content) {
-        try {
-          if (isValidJson(initialPageData.content)) {
-            // Parsear el contenido JSON para convertirlo a HTML
-            const contentJSON = typeof initialPageData.content === 'string' 
-              ? parseContentJSON(initialPageData.content) 
-              : initialPageData.content;
-            console.log("Contenido JSON parseado correctamente");
-            setParsedContent(contentJSON);
-            
-            // Convertir el contenido JSON a HTML
-            const htmlContent = plateToHtml(contentJSON);
-            console.log("Contenido JSON convertido a HTML:", htmlContent.substring(0, 100));
-            setDisplayHtml(htmlContent);
-            
-            // Inicializar MathJax después de renderizar
-            setTimeout(() => {
-              if (typeof window !== 'undefined' && window.MathJax) {
-                try {
-                  window.MathJax.typeset();
-                  console.log('MathJax inicializado correctamente');
-                } catch (mathError) {
-                  console.error('Error al inicializar MathJax:', mathError);
-                }
-              }
-            }, 500);
-          } else {
-            // Si no es JSON válido, establecemos el contenido como null
-            setParsedContent(null);
-            setDisplayHtml(null);
-            console.warn("El contenido no es un JSON válido");
-          }
-        } catch (err) {
-          console.error('Error al parsear contenido JSON:', err);
-          console.error('Tipo de error:', typeof err, err instanceof Error ? err.message : 'No es un Error');
-          setParsedContent(null);
-          setDisplayHtml(null);
-        }
-      }
-      return;
-    }
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
 
+  // Cargar la página por su slug si no se proporcionaron datos iniciales
+  // o forzar una recarga desde Firestore incluso con datos iniciales
+  useEffect(() => {
+    // Siempre cargar datos frescos desde Firestore, incluso con datos iniciales
+    // Esto asegura que tengamos la última versión después de editar
     const fetchPage = async () => {
       if (!slug || typeof slug !== 'string') {
         setError('Slug no válido');
@@ -169,8 +135,9 @@ export default function DynamicPageClient({
       }
     };
 
+    // Siempre cargar datos frescos desde Firestore
     fetchPage();
-  }, [slug, initialPageData, initialError, isValidJson]);
+  }, [slug, isValidJson, parseContentJSON]);
 
   // Manejar activación del modo de edición
   const handleEnableEditing = () => {
