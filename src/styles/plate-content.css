@@ -4,6 +4,7 @@
   line-height: 1.5;
   color: rgba(0, 0, 0, 0.9);
   max-width: 100%;
+  overflow-x: auto; /* Añadido para responsividad */
 }
 
 /* Estilos específicos para PlateRenderer */
@@ -113,13 +114,16 @@
   margin-bottom: 1rem;
 }
 
-/* Estilos para tablas */
+/* Estilos para tablas - Modificados para responsividad */
 .plate-content-view table,
 .plate-content-view .plate-table {
   width: 100%;
   border-collapse: collapse;
   margin: 1.5rem 0;
   font-size: 0.875rem;
+  max-width: 100%;
+  overflow-x: auto;
+  display: block; /* Cambiado para responsividad */
 }
 
 .plate-content-view table th,
@@ -138,7 +142,7 @@
   color: #374151;
 }
 
-/* Estilos para ecuaciones */
+/* Estilos para ecuaciones - Modificados para responsividad */
 .plate-content-view .math-inline,
 .plate-content-view .plate-equation-inline {
   font-style: normal;
@@ -146,15 +150,17 @@
 }
 
 .plate-content-view .math-display,
-.plate-content-view .plate-equation-block {
+.plate-content-view .plate-equation-block,
+.plate-content-view .katex-display {
   display: block;
   margin: 1rem 0;
   padding: 1rem;
   text-align: center;
-  overflow-x: auto;
+  overflow-x: auto; /* Añadido para responsividad */
+  overflow-y: hidden; /* Añadido para responsividad */
 }
 
-/* Estilos para bloques de código */
+/* Estilos para bloques de código - Modificados para responsividad */
 .plate-content-view pre {
   background-color: #f9fafb;
   padding: 1rem;
@@ -162,6 +168,8 @@
   overflow-x: auto;
   border: 1px solid #e5e7eb;
   margin: 1.5rem 0;
+  white-space: pre-wrap; /* Añadido para responsividad */
+  word-wrap: break-word; /* Añadido para responsividad */
 }
 
 .plate-content-view code {
@@ -393,4 +401,83 @@
 .plate-content-view .column,
 .plate-content-view .plate-column {
   flex: 1 1 0%;
+}
+
+/* Asegurar que las imágenes sean responsivas */
+.plate-content-view img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ajustes responsivos para dispositivos móviles */
+@media (max-width: 640px) {
+  /* Ajustar tamaño de encabezados en móviles */
+  .plate-content-view h1,
+  .plate-content-view .plate-h1 {
+    font-size: 1.5rem;
+  }
+  
+  .plate-content-view h2,
+  .plate-content-view .plate-h2 {
+    font-size: 1.3rem;
+  }
+  
+  .plate-content-view h3,
+  .plate-content-view .plate-h3 {
+    font-size: 1.1rem;
+  }
+  
+  /* Ajustar tamaño de texto en móviles */
+  .plate-content-view p,
+  .plate-content-view li {
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  
+  /* Ajustar tamaño de celdas de tabla en móviles */
+  .plate-content-view table td,
+  .plate-content-view table th,
+  .plate-content-view .plate-table-td,
+  .plate-content-view .plate-table-th {
+    padding: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  /* Ajustar tamaño de ecuaciones en móviles */
+  .plate-content-view .katex,
+  .plate-content-view .math-display,
+  .plate-content-view .plate-equation-block {
+    font-size: 0.9em;
+  }
+  
+  /* Ajustar columnas para móviles */
+  .plate-content-view .column-group,
+  .plate-content-view .plate-column-group {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  /* Ajustar indentación para móviles */
+  .plate-content-view .indent-1 {
+    padding-left: 1rem;
+  }
+  
+  .plate-content-view .indent-2 {
+    padding-left: 1.5rem;
+  }
+  
+  .plate-content-view .indent-3 {
+    padding-left: 2rem;
+  }
+  
+  /* Ajustar espaciado en móviles */
+  .plate-content-view {
+    padding: 0 0.5rem;
+  }
+}
+
+/* Asegurar que todos los elementos respeten el ancho máximo */
+.plate-content-view * {
+  max-width: 100%;
+  box-sizing: border-box;
 }
