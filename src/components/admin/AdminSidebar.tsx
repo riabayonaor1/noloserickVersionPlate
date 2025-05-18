@@ -106,3 +106,5 @@ export const AdminSidebar: React.FC = () => {
     </div>
   );
 };
+
+//Ejemplo para probar el Sidebar
