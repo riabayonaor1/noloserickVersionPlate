@@ -85,8 +85,28 @@ const generateIdFromText = (text: string): string => {
  * @returns HTML generado
  */
 /**
- * Preprocesa el contenido para transformar párrafos con listStyleType 'decimal'
- * en estructuras de listas ordenadas adecuadas.
+ * Extrae el número de un elemento de lista a partir del texto
+ * @param node - Nodo de Plate
+ * @returns Número extraído o null si no se encontró
+ */
+const extractListItemNumber = (node: PlateNode): number | null => {
+  if (!node || !node.children || !Array.isArray(node.children)) return null;
+  
+  // Obtener el texto del primer hijo
+  const text = extractTextFromNode(node.children[0] || {});
+  
+  // Buscar un patrón de número seguido de punto y espacio al inicio
+  const match = text.match(/^\s*(\d+)\.\s+/);
+  if (match && match[1]) {
+    return parseInt(match[1], 10);
+  }
+  
+  return null;
+};
+
+/**
+ * Preprocesa el contenido para transformar párrafos con estilo de lista
+ * en estructuras de listas adecuadas.
  * @param content - Array de nodos de Plate
  * @returns Array de nodos procesados
  */
@@ -95,35 +115,86 @@ const preprocessContent = (content: PlateNode[]): PlateNode[] => {
   
   const result: PlateNode[] = [];
   let currentList: PlateNode | null = null;
+  let currentListType: string | null = null;
   
   for (const node of content) {
-    // Si es un párrafo con estilo de lista decimal
-    if (node.type === 'p' && node.listStyleType === 'decimal') {
+    // Si es un párrafo con estilo de lista
+    if (node.type === 'p' && node.listStyleType) {
+      const listType = node.listStyleType;
+      
+      // Determinar qué tipo de lista necesitamos
+      let newListType: string;
+      if (listType === 'decimal') {
+        newListType = 'ol';
+      } else if (listType === 'disc') {
+        newListType = 'ul';
+      } else if (listType === 'todo') {
+        newListType = 'ul-todo';
+      } else {
+        // Tipo no soportado, tratar como párrafo normal
+        result.push(node);
+        currentList = null;
+        currentListType = null;
+        continue;
+      }
+      
       // Detectar si debemos comenzar una nueva lista
       const shouldStartNewList = !currentList || 
-                               currentList.type !== 'ol' || 
+                               currentListType !== newListType ||
                                // Si hay un atributo start, indica que el usuario quiere reiniciar la numeración
-                               node.start !== undefined;
+                               (listType === 'decimal' && node.start !== undefined);
       
       if (shouldStartNewList) {
-        currentList = {
-          type: 'ol',
-          listStyleType: 'decimal',
-          children: [],
-          // Preservar el atributo start si existe
-          ...(node.start !== undefined && { start: node.start })
-        };
-        result.push(currentList);
+        if (newListType === 'ol') {
+          currentList = {
+            type: 'ol',
+            listStyleType: 'decimal',
+            children: [],
+            // Preservar el atributo start si existe
+            ...(node.start !== undefined && { start: node.start })
+          };
+        } else if (newListType === 'ul') {
+          currentList = {
+            type: 'ul',
+            listStyleType: 'disc',
+            children: []
+          };
+        } else if (newListType === 'ul-todo') {
+          currentList = {
+            type: 'ul',
+            listStyleType: 'todo',
+            children: []
+          };
+        }
+        
+        currentListType = newListType;
+        // Asegurarse de que currentList no sea null antes de agregarlo
+        if (currentList) {
+          result.push(currentList);
+        }
       }
       
       // Convertir el párrafo en un elemento de lista
       const liNode: PlateNode = {
         type: 'li',
-        listStyleType: 'decimal',
+        listStyleType: node.listStyleType,
         children: node.children || []
       };
       
-      // Usar operador de aserción no nulo, ya que sabemos que currentList existe en este punto
+      // Si es lista numérica, extraer el número original si está presente
+      if (listType === 'decimal') {
+        const n = extractListItemNumber(node);
+        if (n !== null) {
+          liNode.originalNumber = n;
+        }
+      }
+      
+      // Si es checklist, preservar el estado 'checked'
+      if (listType === 'todo' && node.checked !== undefined) {
+        liNode.checked = node.checked;
+      }
+      
+      // Agregar el elemento a la lista actual
       if (currentList && currentList.children) {
         currentList.children.push(liNode);
       }
@@ -132,6 +203,7 @@ const preprocessContent = (content: PlateNode[]): PlateNode[] => {
     else {
       result.push(node);
       currentList = null;
+      currentListType = null;
     }
   }
   
@@ -780,30 +852,6 @@ const renderNode = (node: PlateNode): string => {
       
       return `<${node.type} id="${headingId}" class="${headingClasses.join(' ')}"${styleAttribute}>${renderChildren(node.children)}</${node.type}>`;
     case 'p':
-      // Verificar si el párrafo debería ser un elemento de lista
-      if (node.listStyleType === 'todo') {
-        const checked = node.checked ? 'checked' : '';
-        return `<div class="plate-p list-todo" id="${node.id || ''}">
-          <div style="display: flex; align-items: flex-start; position: relative; padding-left: 24px;">
-            <input type="checkbox" ${checked} disabled style="position: absolute; left: 0; top: 4px; margin-right: 8px; width: 16px; height: 16px; flex-shrink: 0; appearance: auto; -webkit-appearance: auto; border: 1px solid #ddd;" />
-            <span>${renderChildren(node.children)}</span>
-          </div>
-        </div>`;
-      } else if (node.listStyleType === 'disc') {
-        // Usar un elemento li dentro de un ul para asegurar que la viñeta sea visible
-        return `<ul class="list-disc" style="list-style-type: disc !important; margin-left: 0 !important; padding-left: 1.5rem !important; display: block !important;">
-          <li id="${node.id || ''}" style="display: list-item !important; list-style-type: disc !important; list-style-position: outside !important;">
-            ${renderChildren(node.children)}
-          </li>
-        </ul>`;
-      } else if (node.listStyleType === 'decimal') {
-        // Usar un elemento li dentro de un ol para asegurar que el número sea visible
-        return `<ol class="list-decimal" style="list-style-type: decimal !important; margin-left: 0 !important; padding-left: 1.5rem !important; display: block !important;">
-          <li id="${node.id || ''}" style="display: list-item !important; list-style-type: decimal !important; list-style-position: outside !important;">
-            ${renderChildren(node.children)}
-          </li>
-        </ol>`;
-      }
       return renderElement('p', node);
     case 'blockquote':
       return `<blockquote class="plate-blockquote">${renderChildren(node.children)}</blockquote>`;
@@ -905,9 +953,12 @@ const renderListItem = (node: PlateNode): string => {
   
   // Aplicar estilos inline
   const inlineStyle = ` style="${styles.join('; ')}"`;
+
+  // Añadir atributo value si hay un número original definido (extraído del texto)
+  const valueAttr = node.originalNumber ? ` value="${node.originalNumber}"` : '';
   
   // Asegurarse de que el contenido del elemento sea visible y que las viñetas/números aparezcan
-  return `<li${classAttr}${inlineStyle}>${renderChildren(node.children)}</li>`;
+  return `<li${classAttr}${inlineStyle}${valueAttr}>${renderChildren(node.children)}</li>`;
 };
 
 /**
@@ -1140,7 +1191,9 @@ const renderListElement = (node: PlateNode): string => {
  * @returns HTML para la tabla
  */
 const renderTable = (node: PlateNode): string => {
-  return `<div class="plate-table-container"><table class="plate-table">${renderChildren(node.children)}</table></div>`;
+  // Usar overflow-x:auto para permitir scroll horizontal en dispositivos móviles
+  // Además añadir max-width: 100% para asegurar que la tabla se ajuste al contenedor
+  return `<div class="plate-table-container" style="overflow-x:auto; max-width:100%"><table class="plate-table" style="width:100%">${renderChildren(node.children)}</table></div>`;
 };
 
 /**
