@@ -84,6 +84,60 @@ const generateIdFromText = (text: string): string => {
  * @param standalone - Si es true, genera un documento HTML completo con head y body. Si es false, solo el contenido HTML.
  * @returns HTML generado
  */
+/**
+ * Preprocesa el contenido para transformar párrafos con listStyleType 'decimal'
+ * en estructuras de listas ordenadas adecuadas.
+ * @param content - Array de nodos de Plate
+ * @returns Array de nodos procesados
+ */
+const preprocessContent = (content: PlateNode[]): PlateNode[] => {
+  if (!content || !Array.isArray(content)) return content;
+  
+  const result: PlateNode[] = [];
+  let currentList: PlateNode | null = null;
+  
+  for (const node of content) {
+    // Si es un párrafo con estilo de lista decimal
+    if (node.type === 'p' && node.listStyleType === 'decimal') {
+      // Detectar si debemos comenzar una nueva lista
+      const shouldStartNewList = !currentList || 
+                               currentList.type !== 'ol' || 
+                               // Si hay un atributo start, indica que el usuario quiere reiniciar la numeración
+                               node.start !== undefined;
+      
+      if (shouldStartNewList) {
+        currentList = {
+          type: 'ol',
+          listStyleType: 'decimal',
+          children: [],
+          // Preservar el atributo start si existe
+          ...(node.start !== undefined && { start: node.start })
+        };
+        result.push(currentList);
+      }
+      
+      // Convertir el párrafo en un elemento de lista
+      const liNode: PlateNode = {
+        type: 'li',
+        listStyleType: 'decimal',
+        children: node.children || []
+      };
+      
+      // Usar operador de aserción no nulo, ya que sabemos que currentList existe en este punto
+      if (currentList && currentList.children) {
+        currentList.children.push(liNode);
+      }
+    }
+    // Cualquier otro contenido rompe la lista actual
+    else {
+      result.push(node);
+      currentList = null;
+    }
+  }
+  
+  return result;
+};
+
 export const plateToHtml = (jsonContent: any, standalone: boolean = false): string => {
   // Si es una cadena, intentar parsearla como JSON
   let content: PlateNode[];
@@ -102,6 +156,9 @@ export const plateToHtml = (jsonContent: any, standalone: boolean = false): stri
   if (!content || !Array.isArray(content) || content.length === 0) {
     return '';
   }
+  
+  // Preprocesar el contenido para manejar listas correctamente
+  content = preprocessContent(content);
 
   let html = '';
   
