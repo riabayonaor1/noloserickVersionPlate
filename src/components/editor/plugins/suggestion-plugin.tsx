@@ -77,12 +77,22 @@ export const suggestionPlugin = toTPlatePlugin<SuggestionConfig>(
     },
     render: {
       belowRootNodes: ({ api, element }) => {
-        // Verificar que element y api.suggestion existan antes de llamar a isBlockSuggestion
-        if (!element || !api.suggestion || !api.suggestion.isBlockSuggestion(element)) {
+        // Verificación completa de todas las propiedades necesarias antes de continuar
+        if (!element || !api || !api.suggestion || typeof api.suggestion.isBlockSuggestion !== 'function') {
           return null;
         }
-
-        return <BlockSuggestion element={element} />;
+        
+        try {
+          // Verificar si es un bloque de sugerencia válido
+          if (!api.suggestion.isBlockSuggestion(element)) {
+            return null;
+          }
+          
+          return <BlockSuggestion element={element} />;
+        } catch (error) {
+          console.error('Error en belowRootNodes:', error);
+          return null;
+        }
       },
     },
   })

@@ -189,10 +189,10 @@ const preprocessContent = (content: PlateNode[]): PlateNode[] => {
         }
       }
       
-      // Si es checklist, preservar el estado 'checked'
+      // Si es checklist, establecer el estado 'checked'
       if (listType === 'todo') {
-        // Si ya tiene checked definido, usarlo; de lo contrario, establecer como false por defecto
-        liNode.checked = node.checked !== undefined ? node.checked : false;
+        // Siempre asegurar que checked esté definido, con false por defecto
+        liNode.checked = node.checked === true;
       }
       
       // Agregar el elemento a la lista actual
@@ -917,7 +917,7 @@ const renderNode = (node: PlateNode): string => {
  * @returns HTML del elemento de lista
  */
 const renderListItem = (node: PlateNode): string => {
-  // Verificar si es un elemento de lista de tareas (checklist), ya sea por la propiedad checked o por el tipo listStyleType
+  // Verificar si es un elemento de lista de tareas (checklist)
   const isChecklist = node.checked !== undefined || node.listStyleType === 'todo';
   
   if (isChecklist) {
@@ -1139,7 +1139,8 @@ const renderListElement = (node: PlateNode): string => {
 
   // Verificar si es una lista de tareas
   const hasTodoItems = node.children && Array.isArray(node.children) && 
-                      (node.children.some(child => child.checked !== undefined) || node.listStyleType === 'todo');
+                      (node.children.some(child => child.checked !== undefined || child.listStyleType === 'todo') || 
+                       node.listStyleType === 'todo');
   
   // Agregar tipo de lista si existe
   if (node.listStyleType) {
@@ -1153,9 +1154,18 @@ const renderListElement = (node: PlateNode): string => {
     }
   }
   
-  // Agregar clase para todo-list si los elementos tienen la propiedad checked
+  // Agregar clase para todo-list si los elementos tienen la propiedad checked o son del tipo de lista 'todo'
   if (hasTodoItems) {
     classNames.push('list-todo');
+    
+    // Asegurarse de que los elementos hijos tengan la propiedad checked definida
+    if (node.children && Array.isArray(node.children)) {
+      node.children.forEach(child => {
+        if (child.listStyleType === 'todo' && child.checked === undefined) {
+          child.checked = false;
+        }
+      });
+    }
   }
   
   // Aplicar estilos inline para garantizar que se muestren las viñetas/números
