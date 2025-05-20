@@ -190,8 +190,9 @@ const preprocessContent = (content: PlateNode[]): PlateNode[] => {
       }
       
       // Si es checklist, preservar el estado 'checked'
-      if (listType === 'todo' && node.checked !== undefined) {
-        liNode.checked = node.checked;
+      if (listType === 'todo') {
+        // Si ya tiene checked definido, usarlo; de lo contrario, establecer como false por defecto
+        liNode.checked = node.checked !== undefined ? node.checked : false;
       }
       
       // Agregar el elemento a la lista actual
@@ -863,6 +864,10 @@ const renderNode = (node: PlateNode): string => {
     case 'ol':
       return renderListElement(node);
     case 'li':
+      // Si el estilo de lista es 'todo', asegúrate de que el nodo tenga la propiedad checked
+      if (node.listStyleType === 'todo' && node.checked === undefined) {
+        node.checked = false; // Establecer a falso por defecto si no está definido
+      }
       return renderListItem(node);
     case 'a':
       return `<a href="${node.url || '#'}" class="plate-link">${renderChildren(node.children)}</a>`;
@@ -912,10 +917,11 @@ const renderNode = (node: PlateNode): string => {
  * @returns HTML del elemento de lista
  */
 const renderListItem = (node: PlateNode): string => {
-  // Verificar si es un elemento de lista de tareas (checklist)
-  const isChecklist = node.checked !== undefined;
+  // Verificar si es un elemento de lista de tareas (checklist), ya sea por la propiedad checked o por el tipo listStyleType
+  const isChecklist = node.checked !== undefined || node.listStyleType === 'todo';
   
   if (isChecklist) {
+    // Asegurar que checked tenga un valor por defecto (false) si no está definido
     const checked = node.checked ? 'checked' : '';
     // Mejorar la estructura de los elementos de lista de tareas para que el checkbox sea visible
     return `<li class="plate-checklist-item list-todo" style="display: flex !important; align-items: flex-start !important; position: relative !important; padding-left: 24px !important;">
@@ -1133,7 +1139,7 @@ const renderListElement = (node: PlateNode): string => {
 
   // Verificar si es una lista de tareas
   const hasTodoItems = node.children && Array.isArray(node.children) && 
-                       node.children.some(child => child.checked !== undefined);
+                      (node.children.some(child => child.checked !== undefined) || node.listStyleType === 'todo');
   
   // Agregar tipo de lista si existe
   if (node.listStyleType) {
