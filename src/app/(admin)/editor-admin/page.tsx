@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AdminEditorWrapper } from '@/components/custom/AdminEditorWrapper';
 import { createPage, Page } from '@/lib/firestoreService';
 import { useAuth } from '@/contexts/AuthContext';
-import { Value } from '@udecode/plate-common';
+import { Value } from '@udecode/plate'; // Changed TValue to Value
 import { toast } from 'sonner';
 
 export default function CreatePage() {
@@ -13,7 +13,7 @@ export default function CreatePage() {
   const { currentUser } = useAuth();
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSavePage = async (content: Value, title: string) => {
+  const handleSavePage = async (content: Value, title: string) => { // Changed TValue to Value
     if (!currentUser || !currentUser.email) {
       toast.error('Debes estar autenticado para crear una página.');
       return;

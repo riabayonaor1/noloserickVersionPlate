@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { AdminEditorWrapper } from '@/components/custom/AdminEditorWrapper';
 import { getPageById, updatePage, Page } from '@/lib/firestoreService';
 import { useAuth } from '@/contexts/AuthContext';
-import { Value } from '@udecode/plate-common';
+import { Value } from '@udecode/plate'; // Changed TValue to Value
 import { toast } from 'sonner';
 
 export default function EditPage() {
@@ -47,7 +47,7 @@ export default function EditPage() {
     fetchPageData();
   }, [pageId, router]);
 
-  const handleUpdatePage = async (content: Value, title: string) => {
+  const handleUpdatePage = async (content: Value, title: string) => { // Changed TValue to Value
     if (!currentUser || !currentUser.email) {
       toast.error('Debes estar autenticado para actualizar una página.');
       return;
@@ -96,11 +96,30 @@ export default function EditPage() {
     return <div className="flex justify-center items-center h-screen"><p>No se pudo cargar la página.</p></div>;
   }
 
+  const emptyPlateValue: Value = [{ type: 'p', children: [{ text: '' }] }];
+  let parsedInitialValue: Value;
+
+  try {
+    if (initialPageData.content && typeof initialPageData.content === 'string' && initialPageData.content.trim() !== '') {
+      parsedInitialValue = JSON.parse(initialPageData.content);
+    } else if (initialPageData.content && typeof initialPageData.content === 'object') {
+      // Fallback if content is already an object (though typed as string)
+      parsedInitialValue = initialPageData.content as Value;
+    }
+     else {
+      parsedInitialValue = emptyPlateValue;
+    }
+  } catch (error) {
+    console.error('Error parsing initialPageData.content for editor:', error);
+    toast.error('Error al cargar el contenido previo, se usará un editor vacío.');
+    parsedInitialValue = emptyPlateValue;
+  }
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Editar Página</h1>
       <AdminEditorWrapper 
-        initialValue={initialPageData.content as Value} 
+        initialValue={parsedInitialValue}
         pageTitle={initialPageData.title}
         onSave={handleUpdatePage} 
         isSaving={isSaving}
