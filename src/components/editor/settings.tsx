@@ -308,3 +308,4 @@ export function SettingsDialog() {
     </Dialog>
   );
 }
+// Force re-evaluation by TS

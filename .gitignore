@@ -50,3 +50,6 @@ next-env.d.ts.env
 .firebase/
 **/functions/.next/
 **/functions/.next/cache/
+
+# pnpm
+pnpm-lock.yaml
