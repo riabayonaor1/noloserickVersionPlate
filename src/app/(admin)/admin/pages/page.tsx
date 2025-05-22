@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getAllPages, deletePage, getPageBySlug, createPage } from '@/lib/firestoreService';
+import { getAllPages, deletePage, getPageBySlug, createPage, Page } from '@/lib/firestoreService';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -77,10 +77,10 @@ const defaultHomeContent = JSON.stringify([
 ]);
 
 export default function AdminPages() {
-  const [pages, setPages] = useState([]);
+  const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [pageToDelete, setPageToDelete] = useState(null);
+  const [pageToDelete, setPageToDelete] = useState<Page | null>(null);
   const [homepageExists, setHomepageExists] = useState(true);
   const [restoringHomepage, setRestoringHomepage] = useState(false);
 
@@ -105,7 +105,7 @@ export default function AdminPages() {
     fetchPages();
   }, []);
 
-  const handleDeleteClick = (page) => {
+  const handleDeleteClick = (page: Page) => {
     // Impedir eliminar la página de inicio
     if (page.slug === 'inicio') {
       toast.error('La página de inicio no puede ser eliminada', {
@@ -243,7 +243,7 @@ export default function AdminPages() {
                 <TableCell className="font-medium">
                   {page.title} 
                   {page.slug === 'inicio' && (
-                    <Badge variant="warning" className="ml-2">Página Principal</Badge>
+                    <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Página Principal</Badge>
                   )}
                 </TableCell>
                 <TableCell>{page.slug}</TableCell>
