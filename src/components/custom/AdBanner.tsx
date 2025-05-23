@@ -22,18 +22,25 @@ const AdBanner: React.FC<AdBannerProps> = ({
   const adRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
-    if (shouldShowAd && adRef.current && !adRef.current.hasChildNodes()) {
+    console.log(`AdBanner: useEffect triggered for slot ${dataAdSlot}. shouldShowAd: ${shouldShowAd}`);
+    if (shouldShowAd) {
+      if (adRef.current && adRef.current.hasChildNodes()) {
+        console.log(`AdBanner: Ad container for slot ${dataAdSlot} already has content. Skipping ad push for this instance.`);
+        return;
+      }
+      console.log(`AdBanner: Attempting to load ad for slot ${dataAdSlot}. Ad container visible: ${!!adRef.current}`);
       try {
         // Ensure adsbygoogle is initialized
         ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-        console.log(`AdSense push for slot ${dataAdSlot}`);
+        console.log(`AdBanner: adsbygoogle.push() called for slot ${dataAdSlot}.`);
       } catch (err) {
-        console.error(`Error pushing to adsbygoogle for slot ${dataAdSlot}:`, err);
+        console.error(`AdBanner: Error during adsbygoogle.push() for slot ${dataAdSlot}:`, err);
       }
     }
   }, [shouldShowAd, dataAdSlot]);
 
   if (!shouldShowAd) {
+    console.log(`AdBanner: Ad not shown for slot ${dataAdSlot} because shouldShowAd is false.`);
     return null; // Don't render the ad container if shouldShowAd is false
   }
 
