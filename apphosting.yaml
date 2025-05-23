@@ -6,8 +6,7 @@ runConfig:
   # concurrency: 80
   # cpu: 1
   # memoryMiB: 512
-  environmentVariables:
-    NEXT_PUBLIC_GOOGLE_ADS_CLIENT_ID: 'ca-pub-6483322960648315'
+  environmentVariables: {}
 
 # Environment variables and secrets.
 env:
