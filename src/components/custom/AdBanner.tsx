@@ -49,6 +49,13 @@ const AdBanner: React.FC<AdBannerProps> = ({
 
   // New useEffect for handling route changes
   useEffect(() => {
+    console.log(`AdBanner: Router readiness for slot ${dataAdSlot}: ${router.isReady}`);
+
+    if (!router.isReady) {
+      console.log(`AdBanner: Router not ready for slot ${dataAdSlot}. Skipping route event subscription for now.`);
+      return; // Router is not ready yet, so don't attach listeners
+    }
+
     const handleRouteChange = () => {
       console.log(`AdBanner: Route change detected. Slot: ${dataAdSlot}, Visible: ${shouldShowAd}`);
       if (shouldShowAd && adRef.current) {
@@ -70,12 +77,13 @@ const AdBanner: React.FC<AdBannerProps> = ({
       }
     };
 
+    // Proceed with attaching event listeners only if router is ready
     router.events.on('routeChangeComplete', handleRouteChange);
-    console.log(`AdBanner: Subscribed to routeChangeComplete for slot ${dataAdSlot}`);
+    console.log(`AdBanner: Subscribed to routeChangeComplete for slot ${dataAdSlot} (router is ready).`);
 
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange);
-      console.log(`AdBanner: Unsubscribed from routeChangeComplete for slot ${dataAdSlot}`);
+      console.log(`AdBanner: Unsubscribed from routeChangeComplete for slot ${dataAdSlot} (router is ready).`);
     };
   }, [router, dataAdSlot, shouldShowAd]); // Add router, dataAdSlot, shouldShowAd to dependencies
 
