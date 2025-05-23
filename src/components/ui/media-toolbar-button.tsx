@@ -93,6 +93,7 @@ export function MediaToolbarButton({
   const editor = useEditorRef();
   const [open, setOpen] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const dropdownTriggerRef = React.useRef<HTMLButtonElement>(null);
 
   const { openFilePicker } = useFilePicker({
     accept: currentConfig.accept,
@@ -127,7 +128,7 @@ export function MediaToolbarButton({
           {...props}
         >
           <DropdownMenuTrigger asChild>
-            <ToolbarSplitButtonSecondary />
+            <ToolbarSplitButtonSecondary ref={dropdownTriggerRef} />
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
@@ -155,7 +156,17 @@ export function MediaToolbarButton({
           setDialogOpen(value);
         }}
       >
-        <AlertDialogContent className="gap-6">
+        <AlertDialogContent
+          className="gap-6"
+          onCloseAutoFocus={(event) => {
+            // When the AlertDialog closes, explicitly return focus to the dropdown trigger.
+            // This helps prevent focus from being trapped in the dialog when it's hidden.
+            if (dropdownTriggerRef.current) {
+              dropdownTriggerRef.current.focus();
+              event.preventDefault(); // Prevent Radix's default focus return logic
+            }
+          }}
+        >
           <MediaUrlDialogContent
             currentConfig={currentConfig}
             nodeType={nodeType}
@@ -180,45 +191,76 @@ function MediaUrlDialogContent({
   const [url, setUrl] = React.useState('');
 
   const embedMedia = React.useCallback(async () => {
+    console.log('embedMedia: Original URL received:', url);
+
     if (!isUrl(url)) {
-      toast.error('Invalid URL');
+      toast.error('Invalid URL format.');
+      console.log('embedMedia: Invalid URL format:', url);
       return;
     }
 
-    const TIKTOK_REGEX = /^(https?:\/\/)?(www\.)?(tiktok\.com\/.*\/video\/|vm\.tiktok\.com\/)/;
+    // Regex updated to better handle query parameters and specific TikTok URL structures.
+    // It matches:
+    // - tiktok.com/@username/video/12345... (and query params)
+    // - vm.tiktok.com/shortcode (and query params)
+    const TIKTOK_REGEX = /^(https?:\/\/)?(www\.)?(tiktok\.com\/[^/]+\/video\/[0-9]+|vm\.tiktok\.com\/[A-Za-z0-9]+)/;
+    const isTikTokUrl = TIKTOK_REGEX.test(url);
+    console.log('embedMedia: Is TikTok URL?', isTikTokUrl, '; URL tested:', url);
 
-    if (TIKTOK_REGEX.test(url)) {
+    if (isTikTokUrl) {
+      console.log('embedMedia: Processing as TikTok URL:', url);
       try {
-        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+        // Strip query parameters for the oEmbed request, as some oEmbed providers prefer canonical URLs.
+        let tiktokUrlForOembed = url;
+        const queryParamIndex = tiktokUrlForOembed.indexOf('?');
+        if (queryParamIndex > -1) {
+          tiktokUrlForOembed = tiktokUrlForOembed.substring(0, queryParamIndex);
+        }
+        console.log('embedMedia: Canonical TikTok URL for oEmbed:', tiktokUrlForOembed);
+
+        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(tiktokUrlForOembed)}`;
+        console.log('embedMedia: Constructed oEmbed URL:', oembedUrl);
+
         const response = await fetch(oembedUrl);
+        console.log('embedMedia: Raw response from oEmbed fetch:', response);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch TikTok oEmbed data: ${response.statusText}`);
+          const errorText = await response.text();
+          console.error('embedMedia: TikTok oEmbed fetch failed:', response.status, response.statusText, errorText);
+          throw new Error(`Failed to fetch TikTok video information. Status: ${response.status}. Please check the URL or try again.`);
         }
 
         const data = await response.json();
-        const html = data.html;
+        console.log('embedMedia: Parsed JSON data from oEmbed response:', data);
 
+        const html = data.html;
         if (!html) {
-          throw new Error('No HTML found in TikTok oEmbed response');
+          console.error('embedMedia: No HTML found in TikTok oEmbed response object:', data);
+          throw new Error('Could not extract embed code from TikTok response. The video may be private or unavailable.');
         }
+        console.log('embedMedia: Extracted HTML for embedding:', html);
 
         setOpen(false);
-        editor.tf.insertNodes({
+        const nodeData = {
           type: MediaEmbedPlugin.key,
           url: url, // Keep original URL for reference
           html: html,
           children: [{ text: '' }], // Required by Plate
-        });
+        };
+        console.log('embedMedia: Inserting node data:', nodeData);
+        editor.tf.insertNodes(nodeData);
+        console.log('embedMedia: TikTok video node inserted.');
         return;
-      } catch (error) {
-        console.error(error);
-        toast.error(error instanceof Error ? error.message : 'Failed to embed TikTok video.');
+      } catch (error)
+      {
+        console.error('embedMedia: Error processing TikTok URL:', error);
+        toast.error(error instanceof Error ? error.message : 'An unknown error occurred while embedding the TikTok video.');
         return;
       }
     }
 
     // Existing behavior for non-TikTok URLs
+    console.log('embedMedia: Processing as non-TikTok URL:', url);
     setOpen(false);
     const nodeData: any = {
       children: [{ text: '' }],
