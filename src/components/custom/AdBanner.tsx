@@ -42,7 +42,7 @@ const AdBanner: React.FC<AdBannerProps> = ({
       <ins
         className="adsbygoogle"
         style={style}
-        data-ad-client={process.env.NEXT_PUBLIC_GOOGLE_ADS_CLIENT_ID} // Will pick up var from apphosting.yaml
+        data-ad-client="ca-pub-6483322960648315"
         data-ad-slot={dataAdSlot}
         data-ad-format={dataAdFormat}
         data-full-width-responsive={dataFullWidthResponsive?.toString()}
