@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Pencil, X, Home, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import AdBanner from '@/components/custom/AdBanner';
 // Importamos el conversor de Plate a HTML desde el punto central
 import { plateToHtml } from '@/lib/converters/plateToHtml';
 // Importamos KaTeX para las ecuaciones matemáticas
@@ -35,6 +36,7 @@ export default function DynamicPageClient({
   const [parsedContent, setParsedContent] = useState<any>(null);
   const [displayHtml, setDisplayHtml] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [canShowAds, setCanShowAds] = useState<boolean>(false);
 
   // Función para verificar si un string es JSON válido
   const isValidJson = useCallback((str: string): boolean => {
@@ -103,6 +105,20 @@ export default function DynamicPageClient({
                 const htmlContent = plateToHtml(contentJSON);
                 console.log("Contenido JSON convertido a HTML:", htmlContent.substring(0, 100));
                 setDisplayHtml(htmlContent);
+
+                // Logic to determine if ads can be shown
+                if (htmlContent) {
+                  const tempDiv = document.createElement('div');
+                  tempDiv.innerHTML = htmlContent;
+                  const textContent = tempDiv.textContent || tempDiv.innerText || "";
+                  if (!loading && !error && textContent.trim().length > 200) {
+                    setCanShowAds(true);
+                  } else {
+                    setCanShowAds(false);
+                  }
+                } else {
+                  setCanShowAds(false);
+                }
                 
                 // Inicializar MathJax después de renderizar
                 setTimeout(() => {
@@ -118,18 +134,21 @@ export default function DynamicPageClient({
               } else {
                 setParsedContent(null);
                 setDisplayHtml(null);
+                setCanShowAds(false);
                 console.warn("El contenido no es un JSON válido");
               }
             } catch (err) {
               console.error('Error al parsear contenido JSON:', err);
               setParsedContent(null);
               setDisplayHtml(null);
+              setCanShowAds(false);
             }
           }
         }
       } catch (err) {
         console.error('Error al cargar la página:', err);
         setError('Error al cargar la página');
+        setCanShowAds(false);
       } finally {
         setLoading(false);
       }
@@ -382,6 +401,15 @@ export default function DynamicPageClient({
             </div>
           )}
         </div>
+        {canShowAds && (
+          <div className="my-6 text-center"> {/* Added text-center for the ad container */}
+            <AdBanner
+              dataAdSlot="YOUR_AD_SLOT_ID_PLACEHOLDER" // Replace with your actual ad slot ID
+              className="inline-block" // To allow text-center to work if needed
+              shouldShowAd={true} 
+            />
+          </div>
+        )}
       </div>
 
       {/* Los estilos se han movido a src/styles/plate-content.css */}

@@ -1,3 +1,4 @@
+import Script from 'next/script';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import '../styles/plate-content.css';
@@ -25,6 +26,12 @@ export default function RootLayout({
           async
           src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
         ></script>
+        <Script
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_GOOGLE_ADS_CLIENT_ID}`}
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
       </head>
       <body className={inter.className}>
         <ThemeProvider
