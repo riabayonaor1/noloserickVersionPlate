@@ -9,6 +9,7 @@ import {
   AudioPlugin,
   FilePlugin,
   ImagePlugin,
+  MediaEmbedPlugin,
   PlaceholderPlugin,
   VideoPlugin,
 } from '@udecode/plate-media/react';
@@ -178,16 +179,60 @@ function MediaUrlDialogContent({
   const editor = useEditorRef();
   const [url, setUrl] = React.useState('');
 
-  const embedMedia = React.useCallback(() => {
-    if (!isUrl(url)) return toast.error('Invalid URL');
+  const embedMedia = React.useCallback(async () => {
+    if (!isUrl(url)) {
+      toast.error('Invalid URL');
+      return;
+    }
 
+    const TIKTOK_REGEX = /^(https?:\/\/)?(www\.)?(tiktok\.com\/.*\/video\/|vm\.tiktok\.com\/)/;
+
+    if (TIKTOK_REGEX.test(url)) {
+      try {
+        const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+        const response = await fetch(oembedUrl);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch TikTok oEmbed data: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const html = data.html;
+
+        if (!html) {
+          throw new Error('No HTML found in TikTok oEmbed response');
+        }
+
+        setOpen(false);
+        editor.tf.insertNodes({
+          type: MediaEmbedPlugin.key,
+          url: url, // Keep original URL for reference
+          html: html,
+          children: [{ text: '' }], // Required by Plate
+        });
+        return;
+      } catch (error) {
+        console.error(error);
+        toast.error(error instanceof Error ? error.message : 'Failed to embed TikTok video.');
+        return;
+      }
+    }
+
+    // Existing behavior for non-TikTok URLs
     setOpen(false);
     const nodeData: any = {
       children: [{ text: '' }],
       name: nodeType === FilePlugin.key ? url.split('/').pop() : undefined,
-      type: nodeType,
+      type: nodeType, // This might need adjustment if VideoPlugin.key is used for YouTube/Vimeo embeds via URL
       url,
     };
+
+    // It seems MediaEmbedPlugin.key is used for YouTube/Vimeo too.
+    // If the nodeType is VideoPlugin.key, we should probably change it to MediaEmbedPlugin.key for consistency if it's not a direct video file.
+    // However, the original logic uses `nodeType` directly. Let's stick to that for now for non-TikTok URLs
+    // and assume the calling context (MediaToolbarButton) correctly sets `nodeType` for video embeds.
+    // The prompt mentions `VideoPlugin.key` or `MediaEmbedPlugin.key` for TikTok. We've used `MediaEmbedPlugin.key`.
+
     if (nodeType === ImagePlugin.key) {
       nodeData.caption = [{ type: 'p', children: [{ text: '' }] }];
     }
