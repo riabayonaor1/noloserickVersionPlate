@@ -402,9 +402,9 @@ export default function DynamicPageClient({
           )}
         </div>
         {canShowAds && (
-          <div className="my-6 text-center"> {/* Added text-center for the ad container */}
+           <div className="my-6 text-center"> {/* Added text-center for the ad container */}
             <AdBanner
-              dataAdSlot="YOUR_AD_SLOT_ID_PLACEHOLDER" // Replace with your actual ad slot ID
+              dataAdSlot="7857754771" // Changed to the new ID
               className="inline-block" // To allow text-center to work if needed
               shouldShowAd={true} 
             />
