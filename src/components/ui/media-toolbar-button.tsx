@@ -182,12 +182,16 @@ function MediaUrlDialogContent({
     if (!isUrl(url)) return toast.error('Invalid URL');
 
     setOpen(false);
-    editor.tf.insertNodes({
+    const nodeData: any = {
       children: [{ text: '' }],
       name: nodeType === FilePlugin.key ? url.split('/').pop() : undefined,
       type: nodeType,
       url,
-    });
+    };
+    if (nodeType === ImagePlugin.key) {
+      nodeData.caption = [{ type: 'p', children: [{ text: '' }] }];
+    }
+    editor.tf.insertNodes(nodeData);
   }, [url, editor, nodeType, setOpen]);
 
   return (
