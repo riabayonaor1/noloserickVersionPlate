@@ -104,19 +104,7 @@ export const ImageElement = withHOC(
             <Caption style={{ width }} align={align}>
               <CaptionTextarea
                 readOnly={readOnly}
-                onFocus={(e) => {
-                  e.preventDefault();
-                }}
                 placeholder="Write a caption..."
-                onBlur={(e) => {
-                  if (!readOnly && e.target.textContent) {
-                    // Usamos casting para evitar error de tipo
-                    (editor as any).setNodes(
-                      { caption: e.target.textContent },
-                      { at: (editor as any).findPath(props.element) }
-                    );
-                  }
-                }}
               />
             </Caption>
           </figure>

@@ -4,7 +4,7 @@ import { CaptionPlugin } from '@udecode/plate-caption/react';
 import {
   AudioPlugin,
   FilePlugin,
-  ImagePlugin,
+  ImagePlugin as BaseImagePlugin, // Renamed import
   MediaEmbedPlugin,
   PlaceholderPlugin,
   VideoPlugin,
@@ -13,11 +13,20 @@ import {
 import { ImagePreview } from '@/components/ui/image-preview';
 import { MediaUploadToast } from '@/components/ui/media-upload-toast';
 
+// 1. Create the extended plugin and store it in a variable
+const ExtendedImagePlugin = BaseImagePlugin.extend({
+  options: {
+    disableUploadInsert: true,
+    props: {
+      caption: [{ type: 'p', children: [{ text: '' }] }],
+    },
+  },
+  render: { afterEditable: ImagePreview }, // Ensure render config is kept
+});
+
 export const mediaPlugins = [
-  ImagePlugin.extend({
-    options: { disableUploadInsert: true },
-    render: { afterEditable: ImagePreview },
-  }),
+  // 2. Use the variable in the mediaPlugins array
+  ExtendedImagePlugin,
   MediaEmbedPlugin,
   VideoPlugin,
   AudioPlugin,
@@ -25,7 +34,8 @@ export const mediaPlugins = [
   CaptionPlugin.configure({
     options: {
       plugins: [
-        ImagePlugin,
+        // 3. Use the variable in CaptionPlugin's configuration
+        ExtendedImagePlugin,
         VideoPlugin,
         AudioPlugin,
         FilePlugin,
