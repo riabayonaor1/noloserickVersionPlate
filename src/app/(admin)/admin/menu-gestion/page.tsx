@@ -48,16 +48,19 @@ const DraggableMenuItem = ({
   const dragDropRef = useRef(null); // Ref for the main draggable part
 
   const toggleOpen = (e) => {
+    // console.log("toggleOpen called for item:", item.name, e.target); // Removed console.log
     e.stopPropagation();
     setIsOpen(!isOpen);
   };
   
   const handleEdit = (e) => {
+    // console.log("handleEdit called for item:", item.name, e.target); // Removed console.log
     e.stopPropagation();
     onOpenModal('edit', item.parentId, item);
   };
   
   const handleDelete = (e) => {
+    // console.log("handleDelete called for item:", item.name, e.target); // Removed console.log
     e.stopPropagation();
     if (window.confirm(`¿Estás seguro de eliminar "${item.name}" ${hasChildren ? 'y todos sus sub-elementos' : ''}?`)) {
       onDelete(item.id);
@@ -65,6 +68,7 @@ const DraggableMenuItem = ({
   };
   
   const handleAddChild = (e) => {
+    // console.log("handleAddChild called for item:", item.name, e.target); // Removed console.log
     e.stopPropagation();
     onOpenModal('add', item.id);
   };
@@ -143,9 +147,9 @@ const DraggableMenuItem = ({
       <div
         ref={dropBefore}
         className={cn(
-          "absolute top-0 left-0 right-0 h-1/2 z-10", // Takes up top half for dropping
-          isOverBefore && canDropBefore && "bg-sky-300/50 opacity-100", // Visual indicator
-          !isOverBefore && "opacity-0 hover:opacity-100" // Show on hover
+          "absolute top-0 left-0 right-0 h-4 z-10",
+          isOverBefore && canDropBefore ? "bg-sky-300/50 opacity-100" : "opacity-0", // Conditional visibility restored
+          !isOverBefore && "hover:opacity-100" // Optional: show on hover even if not dragging over
         )}
         style={{ marginLeft: `${level * 12 + 20}px` }} // Indent based on level
       >
@@ -164,7 +168,26 @@ const DraggableMenuItem = ({
             "flex items-center p-2 rounded-md text-sm",
             "hover:bg-accent/50 transition-colors"
           )}
-          onClick={isFolder ? toggleOpen : undefined}
+          onClick={(e) => {
+            // console.log('Main div clicked for folder:', item.name, 'isFolder:', isFolder); // Removed console.log
+            if (isFolder) {
+              // Check if the click target is the toggle button itself or its child (icon)
+              // This is to prevent the main div click from toggling if the button was already clicked
+              // (which would stop propagation)
+              const target = e.target as HTMLElement;
+              const isToggleButton = target.closest('button') === e.currentTarget.querySelector('button.mr-1');
+
+              // Also check if the click is on the item name span, if so, allow toggle
+              const isItemNameSpan = target.closest('span') === e.currentTarget.querySelector('span.flex-1.truncate');
+
+              if (isToggleButton || isItemNameSpan || !target.closest('button')) {
+                 // If the click is on the toggle button, its direct children (like the icon),
+                 // or on the item name, or not on any other button within this div, then toggle.
+                 // The specific buttons for edit/delete/add child have their own e.stopPropagation().
+                toggleOpen(e);
+              }
+            }
+          }}
         >
           <div className="mr-2 cursor-grab">
             <GripVertical size={16} className="text-muted-foreground" />
@@ -175,7 +198,7 @@ const DraggableMenuItem = ({
               <button 
                 type="button" 
                 onClick={toggleOpen}
-                className="mr-1"
+                className="mr-1 relative z-20" // Added relative z-20
               >
                 {isOpen ? (
                   <ChevronDown size={16} className="text-muted-foreground" />
@@ -193,10 +216,10 @@ const DraggableMenuItem = ({
               <File size={16} className="mr-2 text-blue-500" />
             )}
             
-            <span className="flex-1 truncate">{item.name}</span>
+            <span className="flex-1 truncate relative z-20">{item.name}</span> {/* Added relative z-20 */}
           </div>
           
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 relative z-20"> {/* Added relative z-20 */}
             <Button 
               variant="ghost" 
               size="icon" 
@@ -236,9 +259,9 @@ const DraggableMenuItem = ({
       <div
         ref={dropAfter}
         className={cn(
-          "absolute bottom-0 left-0 right-0 h-1/2 z-10", // Takes up bottom half
-          isOverAfter && canDropAfter && "bg-sky-300/50 opacity-100",
-          !isOverAfter && "opacity-0 hover:opacity-100"
+          "absolute bottom-0 left-0 right-0 h-4 z-10",
+          isOverAfter && canDropAfter ? "bg-sky-300/50 opacity-100" : "opacity-0", // Conditional visibility restored
+          !isOverAfter && "hover:opacity-100" // Optional: show on hover
         )}
         style={{ marginLeft: `${level * 12 + 20}px` }}
       >
