@@ -514,22 +514,19 @@ export default function AdminMenuGestion() {
 
   // Manejar movimiento de elementos
   const handleMoveItem = async (itemId, newParentId, targetOrder) => {
-    // targetOrder is the order of the item we are dropping before, 
-    // or item.order + 1 if dropping after, 
-    // or undefined if dropping onto a folder (becomes last) or root (becomes last)
     setIsSaving(true);
-    const originalMenuItems = JSON.parse(JSON.stringify(menuItems)); // For revert
+    const originalMenuItems = JSON.parse(JSON.stringify(menuItems)); 
 
     try {
-      const itemToMoveOriginal = menuItems.find(item => item.id === itemId);
-      if (!itemToMoveOriginal) {
+      const itemToMoveFromOriginals = originalMenuItems.find(item => item.id === itemId);
+      if (!itemToMoveFromOriginals) {
         toast.error("Elemento a mover no encontrado.");
         setIsSaving(false);
         return;
       }
 
       // Prevent moving a folder into itself or one of its children
-      if (itemToMoveOriginal.type === 'folder' && newParentId) {
+      if (itemToMoveFromOriginals.type === 'folder' && newParentId) {
         let currentAncestorId = newParentId;
         while (currentAncestorId) {
           if (currentAncestorId === itemId) {
@@ -537,101 +534,179 @@ export default function AdminMenuGestion() {
             setIsSaving(false);
             return;
           }
-          const ancestorItem = menuItems.find(item => item.id === currentAncestorId);
+          // Check against originalMenuItems to avoid issues with partially modified temp data
+          const ancestorItem = originalMenuItems.find(item => item.id === currentAncestorId);
           currentAncestorId = ancestorItem ? ancestorItem.parentId : null;
         }
       }
       
-      let tempMenuItems = JSON.parse(JSON.stringify(menuItems));
+      let workingMenuItems = JSON.parse(JSON.stringify(originalMenuItems));
       
-      // Detach the item being moved
-      const movedItemIndex = tempMenuItems.findIndex(i => i.id === itemId);
-      const movedItem = { ...tempMenuItems.splice(movedItemIndex, 1)[0] };
+      const movedItemIndex = workingMenuItems.findIndex(i => i.id === itemId);
+      const movedItem = { ...workingMenuItems.splice(movedItemIndex, 1)[0] };
 
       const originalParentId = movedItem.parentId;
-      const originalOrder = movedItem.order;
       
-      // Update parentId and tentative order for the moved item
+      // Update moved item's properties
       movedItem.parentId = newParentId;
-      movedItem.updatedAt = new Date().toISOString();
+      movedItem.updatedAt = new Date().toISOString(); // Mark as updated
 
-      // === Step 1: Adjust orders in the original parent (if it's different from new parent) ===
+      // --- Reordering and Normalization Logic ---
+      let itemsToUpdateInFirestore = [];
+
+      // Add movedItem to the list temporarily for easy filtering, its order is not final yet
+      workingMenuItems.push(movedItem);
+
+      const parentIdsAffected = new Set();
       if (originalParentId !== newParentId) {
-        const siblingsInOriginalParent = tempMenuItems
-          .filter(item => item.parentId === originalParentId)
-          .sort((a, b) => a.order - b.order);
-        
-        siblingsInOriginalParent.forEach((sibling, index) => {
-          sibling.order = index;
-        });
+        parentIdsAffected.add(originalParentId);
       }
-      
-      // === Step 2: Insert item into new parent and adjust orders ===
-      const siblingsInNewParent = tempMenuItems
-        .filter(item => item.parentId === newParentId)
-        .sort((a, b) => a.order - b.order);
+      parentIdsAffected.add(newParentId);
 
-      if (targetOrder === undefined) { // Dropping onto a folder or root (append)
-        movedItem.order = siblingsInNewParent.length;
-      } else { // Dropping at a specific order
-        movedItem.order = targetOrder;
-        siblingsInNewParent.forEach(sibling => {
-          if (sibling.order >= targetOrder) {
-            sibling.order += 1;
+      if (targetOrder !== undefined) { // Item is being reordered or moved to a specific position
+        const siblingsInNewParent = workingMenuItems
+          .filter(item => item.parentId === newParentId && item.id !== itemId) // Exclude the item being moved for now
+          .sort((a, b) => a.order - b.order);
+
+        // Insert the moved item at the targetOrder
+        siblingsInNewParent.splice(targetOrder, 0, movedItem);
+        
+        // Update orders for all items in this group
+        siblingsInNewParent.forEach((sibling, index) => {
+          if (sibling.order !== index || (sibling.id === itemId && sibling.parentId !== newParentId)) { // If order or parent changed for the moved item
+            workingMenuItems.find(i => i.id === sibling.id).order = index;
           }
         });
-      }
-      
-      // Add the moved item back to the list and re-normalize orders for the new parent
-      tempMenuItems.push(movedItem);
-      
-      // Normalize orders for the new parent group (and original if it was different and affected)
-      const parentIdsToNormalize = new Set([newParentId, originalParentId]);
-      
-      parentIdsToNormalize.forEach(pid => {
-        const childrenOfParent = tempMenuItems
-          .filter(item => item.parentId === pid)
-          .sort((a, b) => a.order - b.order); // Sort by current order
+        movedItem.order = targetOrder; // Ensure movedItem's order is correctly set
+      } else { // Item is being appended to the new parent (dropped onto folder or root)
+        const siblingsInNewParent = workingMenuItems
+          .filter(item => item.parentId === newParentId && item.id !== itemId)
+          .sort((a, b) => a.order - b.order);
         
-        childrenOfParent.forEach((child, index) => { // Assign new sequential order
-          child.order = index;
+        movedItem.order = siblingsInNewParent.length;
+        // Siblings orders don't change relative to each other, but the group will be normalized
+      }
+
+      // Normalize orders for all affected parents
+      parentIdsAffected.forEach(pId => {
+        const childrenOfParent = workingMenuItems
+          .filter(item => item.parentId === pId)
+          .sort((a, b) => a.order - b.order);
+
+        childrenOfParent.forEach((child, index) => {
+          if (child.order !== index) {
+            child.order = index; // Update in workingMenuItems
+          }
         });
       });
       
-      // === Step 3: Identify actual changes for Firestore update ===
-      const updatesForFirestore = [];
-      tempMenuItems.forEach(item => {
-        const originalItem = originalMenuItems.find(orig => orig.id === item.id);
-        // Check if parentId or order changed
-        if (!originalItem || originalItem.parentId !== item.parentId || originalItem.order !== item.order) {
-          updatesForFirestore.push({ 
-            id: item.id, 
-            changes: { parentId: item.parentId, order: item.order } 
-          });
-        } else if (originalItem.updatedAt !== item.updatedAt && item.id === itemId) {
-           // If only updatedAt changed for the moved item (e.g. moved to same place but triggered logic)
-           // Still good to record this, though parentId and order are primary.
-           // For now, we only update if parent or order changed.
+      // Determine final list of changes for Firestore
+      workingMenuItems.forEach(currentItem => {
+        const originalItem = originalMenuItems.find(orig => orig.id === currentItem.id);
+        const changes = {};
+        let hasChanges = false;
+
+        if (originalItem.parentId !== currentItem.parentId) {
+          changes.parentId = currentItem.parentId;
+          hasChanges = true;
+        }
+        if (originalItem.order !== currentItem.order) {
+          changes.order = currentItem.order;
+          hasChanges = true;
+        }
+
+        if (hasChanges) {
+          itemsToUpdateInFirestore.push({ id: currentItem.id, changes });
+        } else if (currentItem.id === itemId && originalItem.updatedAt !== currentItem.updatedAt) {
+          // If only updatedAt changed for the moved item (e.g. moved to same place but triggered self-nesting check)
+          // We might want to ensure parentId and order are explicitly part of the update if no other changes.
+          // However, the current requirement is to return changes for parentId and/or order.
+          // If an item is moved but its parent and final order are the same, it won't be in itemsToUpdateInFirestore
+          // unless other items shifted causing its original order to be different from current.
         }
       });
+      
+      // If the moved item itself didn't have parent/order changes but caused others to shift,
+      // it should still be in workingMenuItems with its correct (potentially unchanged) parent/order.
+      // We need to ensure the moved item's final state is correctly reflected if it's part of itemsToUpdateInFirestore.
+      const movedItemFinalState = workingMenuItems.find(i => i.id === itemId);
+      const movedItemUpdateEntry = itemsToUpdateInFirestore.find(u => u.id === itemId);
 
-      if (updatesForFirestore.length > 0) {
-        const updatePromises = updatesForFirestore.map(u => updateMenuItem(u.id, u.changes));
-        await Promise.all(updatePromises);
-        toast.success('Menú reorganizado con éxito.');
-      } else {
-        // This can happen if an item is dragged and dropped in the exact same position.
-        toast.info('No se realizaron cambios en la estructura del menú.');
+      if (movedItemFinalState && !movedItemUpdateEntry) {
+        // This case can happen if the item was moved, but its final parentId and order are identical to original,
+        // and no other items shifted around it. (e.g. dragged and dropped in the exact same spot)
+        // The prompt requires returning items whose parentId or order changed.
+        // If no changes, itemsToUpdateInFirestore will be empty.
+      } else if (movedItemFinalState && movedItemUpdateEntry) {
+        // Ensure the update entry for the moved item reflects its final calculated state.
+        // This is important if the initial parentId/order in changes was from an intermediate state.
+        if (movedItemFinalState.parentId !== movedItemUpdateEntry.changes.parentId) {
+            movedItemUpdateEntry.changes.parentId = movedItemFinalState.parentId;
+             if (movedItemUpdateEntry.changes.parentId === undefined) delete movedItemUpdateEntry.changes.parentId; // Clean up if it became undefined
+        }
+        if (movedItemFinalState.order !== movedItemUpdateEntry.changes.order) {
+            movedItemUpdateEntry.changes.order = movedItemFinalState.order;
+        }
+         // Ensure changes object is not empty
+        if (Object.keys(movedItemUpdateEntry.changes).length === 0) {
+          itemsToUpdateInFirestore = itemsToUpdateInFirestore.filter(u => u.id !== itemId);
+        }
       }
       
-      setMenuItems(tempMenuItems);
-      setTreeData(buildMenuTree(tempMenuItems));
+      // Ensure all entries in itemsToUpdateInFirestore have a non-empty changes object
+      itemsToUpdateInFirestore = itemsToUpdateInFirestore.filter(
+        u => u.changes && Object.keys(u.changes).length > 0
+      );
+
+      // The function will now return the changes and the updated temporary menu.
+      // The calling code will handle Firestore updates and state setting.
+      return { updates: itemsToUpdateInFirestore, updatedMenuItems: workingMenuItems };
 
     } catch (error) {
-      console.error('Error al mover el elemento:', error);
-      toast.error('Error al reorganizar el menú: ' + error.message);
-      setMenuItems(originalMenuItems); // Revert to original state on error
-      setTreeData(buildMenuTree(originalMenuItems));
+      console.error('Error al calcular el movimiento del elemento:', error);
+      // Return null or throw error to indicate failure, caller should handle this.
+      // Reverting to originalMenuItems should be handled by the caller if transaction fails.
+      throw error; 
+    } finally {
+      // setIsSaving should be controlled by the caller that performs async operations.
+      // setIsSaving(false); 
+    }
+  };
+  
+  // Wrapper function to be called by UI components, which then handles Firestore and state.
+  const processMoveItem = async (itemId, newParentId, targetOrder) => {
+    setIsSaving(true);
+    const originalItemsForRevert = JSON.parse(JSON.stringify(menuItems));
+
+    try {
+      const result = await handleMoveItem(itemId, newParentId, targetOrder);
+
+      if (result && result.updates.length > 0) {
+        const { updates, updatedMenuItems } = result;
+        const updatePromises = updates.map(u => updateMenuItem(u.id, u.changes));
+        await Promise.all(updatePromises);
+        
+        setMenuItems(updatedMenuItems);
+        setTreeData(buildMenuTree(updatedMenuItems));
+        toast.success('Menú reorganizado con éxito.');
+      } else {
+        // No actual changes to persist, or result was null/undefined
+        toast.info('No se realizaron cambios en la estructura del menú.');
+        // Ensure UI reflects the original state if no changes were made or if calculation was aborted.
+        // If handleMoveItem did calculations but found no effective change, updatedMenuItems would be original state or equivalent.
+        if (result && result.updatedMenuItems) {
+            setMenuItems(result.updatedMenuItems);
+            setTreeData(buildMenuTree(result.updatedMenuItems));
+        } else {
+            setMenuItems(originalItemsForRevert);
+            setTreeData(buildMenuTree(originalItemsForRevert));
+        }
+      }
+    } catch (error) {
+      // Error from handleMoveItem or Firestore update
+      toast.error(`Error al reorganizar el menú: ${error.message}`);
+      setMenuItems(originalItemsForRevert);
+      setTreeData(buildMenuTree(originalItemsForRevert));
     } finally {
       setIsSaving(false);
     }
@@ -666,7 +741,7 @@ export default function AdminMenuGestion() {
                 level={0}
                 onOpenModal={openModal}
                 onDelete={handleDeleteItem}
-                onMove={handleMoveItem}
+                onMove={processMoveItem}
                 parentId={null} // Root items have null parentId
               />
             ))
