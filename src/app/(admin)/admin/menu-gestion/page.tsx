@@ -514,6 +514,7 @@ export default function AdminMenuGestion() {
 
   // Manejar movimiento de elementos
   const handleMoveItem = async (itemId, newParentId, targetOrder) => {
+    console.log('[Move] Start:', { itemId, newParentId, targetOrder });
     // targetOrder is the order of the item we are dropping before, 
     // or item.order + 1 if dropping after, 
     // or undefined if dropping onto a folder (becomes last) or root (becomes last)
@@ -553,6 +554,7 @@ export default function AdminMenuGestion() {
       
       // Update parentId and tentative order for the moved item
       movedItem.parentId = newParentId;
+      console.log('[Move] Item parent updated:', { id: movedItem.id, parentId: movedItem.parentId });
       movedItem.updatedAt = new Date().toISOString();
 
       // === Step 1: Adjust orders in the original parent (if it's different from new parent) ===
@@ -571,19 +573,26 @@ export default function AdminMenuGestion() {
         .filter(item => item.parentId === newParentId)
         .sort((a, b) => a.order - b.order);
 
+      console.log('[Move] Step 2 - Before order assignment:', { targetOrder, siblingsInNewParent: JSON.parse(JSON.stringify(siblingsInNewParent)) });
       if (targetOrder === undefined) { // Dropping onto a folder or root (append)
         movedItem.order = siblingsInNewParent.length;
+        console.log('[Move] Step 2 - Appending to new parent:', { newOrder: movedItem.order });
       } else { // Dropping at a specific order
+        console.log('[Move] Step 2 - Inserting into new parent:', { targetOrder });
         movedItem.order = targetOrder;
         siblingsInNewParent.forEach(sibling => {
           if (sibling.order >= targetOrder) {
             sibling.order += 1;
+            // console.log('[Move] Step 2 - Sibling order adjusted:', { id: sibling.id, newOrder: sibling.order }); // Optional detailed log
           }
         });
       }
       
       // Add the moved item back to the list and re-normalize orders for the new parent
       tempMenuItems.push(movedItem);
+      
+      console.log('[Move] Before Final Normalization - tempMenuItems sample (new parent children):', JSON.parse(JSON.stringify(tempMenuItems.filter(i => i.parentId === newParentId).sort((a,b) => a.order - b.order))));
+      console.log('[Move] Before Final Normalization - tempMenuItems sample (old parent children, if different):', originalParentId !== newParentId ? JSON.parse(JSON.stringify(tempMenuItems.filter(i => i.parentId === originalParentId).sort((a,b) => a.order - b.order))) : 'Same parent');
       
       // Normalize orders for the new parent group (and original if it was different and affected)
       const parentIdsToNormalize = new Set([newParentId, originalParentId]);
@@ -597,6 +606,9 @@ export default function AdminMenuGestion() {
           child.order = index;
         });
       });
+
+      console.log('[Move] After Final Normalization - tempMenuItems sample (new parent children):', JSON.parse(JSON.stringify(tempMenuItems.filter(i => i.parentId === newParentId).sort((a,b) => a.order - b.order))));
+      console.log('[Move] After Final Normalization - tempMenuItems sample (old parent children, if different):', originalParentId !== newParentId ? JSON.parse(JSON.stringify(tempMenuItems.filter(i => i.parentId === originalParentId).sort((a,b) => a.order - b.order))) : 'Same parent');
       
       // === Step 3: Identify actual changes for Firestore update ===
       const updatesForFirestore = [];
@@ -616,6 +628,7 @@ export default function AdminMenuGestion() {
       });
 
       if (updatesForFirestore.length > 0) {
+        console.log('[Move] Firestore Updates:', JSON.parse(JSON.stringify(updatesForFirestore)));
         const updatePromises = updatesForFirestore.map(u => updateMenuItem(u.id, u.changes));
         await Promise.all(updatePromises);
         toast.success('Menú reorganizado con éxito.');
@@ -624,6 +637,7 @@ export default function AdminMenuGestion() {
         toast.info('No se realizaron cambios en la estructura del menú.');
       }
       
+      console.log('[Move] Final tempMenuItems state before UI update:', JSON.parse(JSON.stringify(tempMenuItems.sort((a,b) => a.parentId === b.parentId ? a.order - b.order : (a.parentId || "").localeCompare(b.parentId || "")))));
       setMenuItems(tempMenuItems);
       setTreeData(buildMenuTree(tempMenuItems));
 
