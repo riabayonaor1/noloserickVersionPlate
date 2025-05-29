@@ -39,13 +39,14 @@ const DraggableMenuItem = ({
   level = 0, 
   onOpenModal, 
   onDelete,
-  onMove
+  onMove,
+  parentId // Added parentId to know the current parent
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const hasChildren = item.children && item.children.length > 0;
   const isFolder = item.type === 'folder';
-  const dragDropRef = useRef(null);
-  
+  const dragDropRef = useRef(null); // Ref for the main draggable part
+
   const toggleOpen = (e) => {
     e.stopPropagation();
     setIsOpen(!isOpen);
@@ -68,125 +69,196 @@ const DraggableMenuItem = ({
     onOpenModal('add', item.id);
   };
   
-  // Drag and drop with react-dnd
   const [{ isDragging }, drag] = useDrag({
     type: 'MENU_ITEM',
-    item: { id: item.id, type: item.type },
+    item: { id: item.id, type: item.type, originalParentId: item.parentId, originalOrder: item.order },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
   });
-  
-  // Drop target for folders
-  const [{ isOver, canDrop }, drop] = useDrop({
+
+  // Drop target for dropping ONTO a folder
+  const [{ isOverFolder, canDropOnFolder }, dropOnFolder] = useDrop({
     accept: 'MENU_ITEM',
     drop: (droppedItem) => {
       if (droppedItem.id !== item.id && isFolder) {
-        onMove(droppedItem.id, item.id);
+        // Move into this folder, order will be last
+        onMove(droppedItem.id, item.id, undefined); 
       }
     },
-    canDrop: (droppedItem) => droppedItem.id !== item.id && isFolder,
+    canDrop: (droppedItem) => droppedItem.id !== item.id && isFolder && droppedItem.id !== item.parentId,
     collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
-      canDrop: !!monitor.canDrop(),
+      isOverFolder: !!monitor.isOver({ shallow: true }) && !!monitor.canDrop(),
+      canDropOnFolder: !!monitor.canDrop(),
+    }),
+  });
+
+  // Drop target for dropping BEFORE an item (reordering)
+  const [{ isOverBefore, canDropBefore }, dropBefore] = useDrop({
+    accept: 'MENU_ITEM',
+    drop: (droppedItem) => {
+      if (droppedItem.id !== item.id) {
+        // Move before this item, calculate new order
+        onMove(droppedItem.id, item.parentId, item.order);
+      }
+    },
+    canDrop: (droppedItem) => droppedItem.id !== item.id,
+    collect: (monitor) => ({
+      isOverBefore: !!monitor.isOver({ shallow: true }) && !!monitor.canDrop(),
+      canDropBefore: !!monitor.canDrop(),
     }),
   });
   
-  // Combine refs for items that can be both dragged and dropped (folders)
-  // Use useRef and useEffect to handle the refs safely
+  // Drop target for dropping AFTER an item (reordering)
+  // This is effectively the same as dropping before the NEXT item,
+  // but can also handle dropping at the end of a list if this is the last item.
+  const [{ isOverAfter, canDropAfter }, dropAfter] = useDrop({
+    accept: 'MENU_ITEM',
+    drop: (droppedItem) => {
+      if (droppedItem.id !== item.id) {
+        onMove(droppedItem.id, item.parentId, item.order + 1);
+      }
+    },
+    canDrop: (droppedItem) => droppedItem.id !== item.id,
+    collect: (monitor) => ({
+      isOverAfter: !!monitor.isOver({ shallow: true }) && !!monitor.canDrop(),
+      canDropAfter: !!monitor.canDrop(),
+    }),
+  });
+
+  // Attach refs
   useEffect(() => {
+    drag(dragDropRef); // The entire item is draggable
     if (isFolder) {
-      drop(dragDropRef);
-      drag(dragDropRef);
-    } else {
-      drag(dragDropRef);
+      dropOnFolder(dragDropRef); // Folders can have items dropped ONTO them
     }
-  }, [drag, drop, isFolder]);
-  
+    // These refs are for the visual indicators and small drop zones
+    // They don't need to be combined with dragDropRef directly for dnd functionality,
+    // but rather positioned correctly in the JSX.
+  }, [drag, dropOnFolder, isFolder]);
+
   return (
-    <div
-      ref={dragDropRef}
-      className={cn(
-        "mb-1 select-none",
-        isDragging && "opacity-50",
-        isOver && canDrop && "bg-accent/30"
-      )}
-    >
-      <div 
+    <div className={cn("relative select-none", isDragging && "opacity-30")}>
+      {/* Drop zone BEFORE item */}
+      <div
+        ref={dropBefore}
         className={cn(
-          "flex items-center p-2 rounded-md text-sm",
-          "hover:bg-accent/50 transition-colors",
-          isOver && canDrop && "bg-accent/50"
+          "absolute top-0 left-0 right-0 h-1/2 z-10", // Takes up top half for dropping
+          isOverBefore && canDropBefore && "bg-sky-300/50 opacity-100", // Visual indicator
+          !isOverBefore && "opacity-0 hover:opacity-100" // Show on hover
         )}
-        onClick={isFolder ? toggleOpen : undefined}
+        style={{ marginLeft: `${level * 12 + 20}px` }} // Indent based on level
       >
-        <div className="mr-2 cursor-grab">
-          <GripVertical size={16} className="text-muted-foreground" />
-        </div>
-        
-        <div style={{ marginLeft: `${level * 12}px` }} className="flex items-center flex-1">
-          {isFolder ? (
-            <button 
-              type="button" 
-              onClick={toggleOpen}
-              className="mr-1"
-            >
-              {isOpen ? (
-                <ChevronDown size={16} className="text-muted-foreground" />
-              ) : (
-                <ChevronRight size={16} className="text-muted-foreground" />
-              )}
-            </button>
-          ) : (
-            <div className="w-4 mr-1"></div>
+        {isOverBefore && <div className="h-full w-full border-t-2 border-sky-500"></div>}
+      </div>
+
+      <div
+        ref={dragDropRef} // Main draggable element
+        className={cn(
+          "mb-1 relative", // Ensure relative positioning for children drop zones
+          isOverFolder && canDropOnFolder && "bg-amber-200/50" // Highlight when dropping ONTO folder
+        )}
+      >
+        <div 
+          className={cn(
+            "flex items-center p-2 rounded-md text-sm",
+            "hover:bg-accent/50 transition-colors"
           )}
+          onClick={isFolder ? toggleOpen : undefined}
+        >
+          <div className="mr-2 cursor-grab">
+            <GripVertical size={16} className="text-muted-foreground" />
+          </div>
           
-          {isFolder ? (
-            <Folder size={16} className="mr-2 text-amber-500" />
-          ) : (
-            <File size={16} className="mr-2 text-blue-500" />
-          )}
+          <div style={{ marginLeft: `${level * 12}px` }} className="flex items-center flex-1">
+            {isFolder ? (
+              <button 
+                type="button" 
+                onClick={toggleOpen}
+                className="mr-1"
+              >
+                {isOpen ? (
+                  <ChevronDown size={16} className="text-muted-foreground" />
+                ) : (
+                  <ChevronRight size={16} className="text-muted-foreground" />
+                )}
+              </button>
+            ) : (
+              <div className="w-4 mr-1"></div> // Placeholder for non-folders
+            )}
+            
+            {isFolder ? (
+              <Folder size={16} className="mr-2 text-amber-500" />
+            ) : (
+              <File size={16} className="mr-2 text-blue-500" />
+            )}
+            
+            <span className="flex-1 truncate">{item.name}</span>
+          </div>
           
-          <span className="flex-1 truncate">{item.name}</span>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7"
-            onClick={handleEdit}
-          >
-            <Edit size={14} />
-            <span className="sr-only">Editar</span>
-          </Button>
-          
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-7 w-7 text-destructive"
-            onClick={handleDelete}
-          >
-            <Trash size={14} />
-            <span className="sr-only">Eliminar</span>
-          </Button>
-          
-          {isFolder && (
+          <div className="flex items-center gap-1">
             <Button 
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
-              onClick={handleAddChild}
+              onClick={handleEdit}
             >
-              <ChevronDown size={14} />
-              <span className="sr-only">Añadir elemento</span>
+              <Edit size={14} />
+              <span className="sr-only">Editar</span>
             </Button>
-          )}
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 text-destructive"
+              onClick={handleDelete}
+            >
+              <Trash size={14} />
+              <span className="sr-only">Eliminar</span>
+            </Button>
+            
+            {isFolder && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7"
+                onClick={handleAddChild}
+              >
+                <PlusCircle size={14} /> 
+                <span className="sr-only">Añadir sub-elemento</span>
+              </Button>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* Drop zone AFTER item */}
+      <div
+        ref={dropAfter}
+        className={cn(
+          "absolute bottom-0 left-0 right-0 h-1/2 z-10", // Takes up bottom half
+          isOverAfter && canDropAfter && "bg-sky-300/50 opacity-100",
+          !isOverAfter && "opacity-0 hover:opacity-100"
+        )}
+        style={{ marginLeft: `${level * 12 + 20}px` }}
+      >
+        {isOverAfter && <div className="h-full w-full border-b-2 border-sky-500"></div>}
       </div>
       
       {isFolder && hasChildren && isOpen && (
-        <div className="pl-4 ml-6 border-l mt-1">
+        <div className="pl-4 ml-6 border-l mt-1 relative">
+          {/* Drop zone for empty folder or end of list in folder */}
+          <div
+            ref={dropOnFolder} // Re-use dropOnFolder ref for the empty space if desired, or a new one
+            className={cn(
+              "absolute top-0 bottom-0 left-0 right-0 z-0", // Covers the children area
+              isOverFolder && canDropOnFolder && !item.children.find(c => c.id === 'temp-hover-id') && "bg-amber-100/30" // Highlight if empty and dropping
+            )}
+            onDrop={(e) => { // This onDrop is for the container, not react-dnd directly
+              e.preventDefault(); // Prevent default to allow drop
+            }}
+            onDragOver={(e) => e.preventDefault()} // Necessary for onDrop to fire
+          />
           {item.children.map((child) => (
             <DraggableMenuItem
               key={child.id}
@@ -195,6 +267,7 @@ const DraggableMenuItem = ({
               onOpenModal={onOpenModal}
               onDelete={onDelete}
               onMove={onMove}
+              parentId={item.id} // Pass current folder's ID as parentId
             />
           ))}
         </div>
@@ -204,19 +277,21 @@ const DraggableMenuItem = ({
 };
 
 // Root drop target for menu items
-const RootDropTarget = ({ onMove, children }) => {
+const RootDropTarget = ({ onMove, children, menuItems }) => { // Added menuItems
   const dropRef = useRef(null);
-  const [{ isOver }, drop] = useDrop({
+  const [{ isOverRoot, canDropOnRoot }, drop] = useDrop({
     accept: 'MENU_ITEM',
-    drop: (item) => {
-      onMove(item.id, null);
+    drop: (droppedItem) => {
+      // Move to root, order will be last among root items
+      onMove(droppedItem.id, null, undefined); 
     },
+    canDrop: (droppedItem) => droppedItem.parentId !== null, // Can drop if not already a root item
     collect: (monitor) => ({
-      isOver: !!monitor.isOver(),
+      isOverRoot: !!monitor.isOver({ shallow: true }) && !!monitor.canDrop(),
+      canDropOnRoot: !!monitor.canDrop(),
     }),
   });
   
-  // Use useEffect to handle the ref safely
   useEffect(() => {
     drop(dropRef);
   }, [drop]);
@@ -224,7 +299,10 @@ const RootDropTarget = ({ onMove, children }) => {
   return (
     <div 
       ref={dropRef} 
-      className={`p-4 border rounded-md min-h-[300px] bg-muted/20 ${isOver ? 'bg-accent/30' : ''}`}
+      className={cn(
+        "p-4 border rounded-md min-h-[300px] bg-muted/20",
+        isOverRoot && canDropOnRoot && "bg-emerald-100/50" // Visual cue for dropping on root
+      )}
     >
       {children}
     </div>
@@ -412,64 +490,125 @@ export default function AdminMenuGestion() {
   };
 
   // Manejar movimiento de elementos
-  const handleMoveItem = async (itemId, newParentId) => {
+  const handleMoveItem = async (itemId, newParentId, targetOrder) => {
+    // targetOrder is the order of the item we are dropping before, 
+    // or item.order + 1 if dropping after, 
+    // or undefined if dropping onto a folder (becomes last) or root (becomes last)
+    setIsSaving(true);
+    const originalMenuItems = JSON.parse(JSON.stringify(menuItems)); // For revert
+
     try {
-      setIsSaving(true);
-      
-      // Obtener el elemento a mover
-      const itemToMove = menuItems.find(item => item.id === itemId);
-      if (!itemToMove) return;
-      
-      // Verificar que no estamos moviendo a un hijo propio (si es una carpeta)
-      if (itemToMove.type === 'folder') {
-        const getAllChildrenIds = (folderId) => {
-          const directChildren = menuItems.filter(item => item.parentId === folderId);
-          
-          return [
-            ...directChildren.map(child => child.id),
-            ...directChildren
-              .filter(child => child.type === 'folder')
-              .flatMap(folder => getAllChildrenIds(folder.id))
-          ];
-        };
-        
-        const childrenIds = getAllChildrenIds(itemId);
-        if (childrenIds.includes(newParentId)) {
-          toast.error('No puedes mover una carpeta a uno de sus hijos');
-          setIsSaving(false);
-          return;
+      const itemToMoveOriginal = menuItems.find(item => item.id === itemId);
+      if (!itemToMoveOriginal) {
+        toast.error("Elemento a mover no encontrado.");
+        setIsSaving(false);
+        return;
+      }
+
+      // Prevent moving a folder into itself or one of its children
+      if (itemToMoveOriginal.type === 'folder' && newParentId) {
+        let currentAncestorId = newParentId;
+        while (currentAncestorId) {
+          if (currentAncestorId === itemId) {
+            toast.error('No puedes mover una carpeta a uno de sus propios hijos.');
+            setIsSaving(false);
+            return;
+          }
+          const ancestorItem = menuItems.find(item => item.id === currentAncestorId);
+          currentAncestorId = ancestorItem ? ancestorItem.parentId : null;
         }
       }
       
-      // Obtener el orden máximo entre los hermanos en la nueva ubicación
-      const newSiblings = menuItems.filter(item => item.parentId === newParentId);
-      const newOrder = newSiblings.length > 0 
-        ? Math.max(...newSiblings.map(s => s.order)) + 1 
-        : 0;
+      let tempMenuItems = JSON.parse(JSON.stringify(menuItems));
       
-      const success = await updateMenuItem(itemId, {
-        parentId: newParentId,
-        order: newOrder
+      // Detach the item being moved
+      const movedItemIndex = tempMenuItems.findIndex(i => i.id === itemId);
+      const movedItem = { ...tempMenuItems.splice(movedItemIndex, 1)[0] };
+
+      const originalParentId = movedItem.parentId;
+      const originalOrder = movedItem.order;
+      
+      // Update parentId and tentative order for the moved item
+      movedItem.parentId = newParentId;
+      movedItem.updatedAt = new Date().toISOString();
+
+      // === Step 1: Adjust orders in the original parent (if it's different from new parent) ===
+      if (originalParentId !== newParentId) {
+        const siblingsInOriginalParent = tempMenuItems
+          .filter(item => item.parentId === originalParentId)
+          .sort((a, b) => a.order - b.order);
+        
+        siblingsInOriginalParent.forEach((sibling, index) => {
+          sibling.order = index;
+        });
+      }
+      
+      // === Step 2: Insert item into new parent and adjust orders ===
+      const siblingsInNewParent = tempMenuItems
+        .filter(item => item.parentId === newParentId)
+        .sort((a, b) => a.order - b.order);
+
+      if (targetOrder === undefined) { // Dropping onto a folder or root (append)
+        movedItem.order = siblingsInNewParent.length;
+      } else { // Dropping at a specific order
+        movedItem.order = targetOrder;
+        siblingsInNewParent.forEach(sibling => {
+          if (sibling.order >= targetOrder) {
+            sibling.order += 1;
+          }
+        });
+      }
+      
+      // Add the moved item back to the list and re-normalize orders for the new parent
+      tempMenuItems.push(movedItem);
+      
+      // Normalize orders for the new parent group (and original if it was different and affected)
+      const parentIdsToNormalize = new Set([newParentId, originalParentId]);
+      
+      parentIdsToNormalize.forEach(pid => {
+        const childrenOfParent = tempMenuItems
+          .filter(item => item.parentId === pid)
+          .sort((a, b) => a.order - b.order); // Sort by current order
+        
+        childrenOfParent.forEach((child, index) => { // Assign new sequential order
+          child.order = index;
+        });
       });
       
-      if (success) {
-        toast.success('Elemento movido con éxito');
-        
-        // Actualizar el estado local
-        const updatedItems = menuItems.map(item => 
-          item.id === itemId 
-            ? { ...item, parentId: newParentId, order: newOrder, updatedAt: new Date() } 
-            : item
-        );
-        
-        setMenuItems(updatedItems);
-        setTreeData(buildMenuTree(updatedItems));
+      // === Step 3: Identify actual changes for Firestore update ===
+      const updatesForFirestore = [];
+      tempMenuItems.forEach(item => {
+        const originalItem = originalMenuItems.find(orig => orig.id === item.id);
+        // Check if parentId or order changed
+        if (!originalItem || originalItem.parentId !== item.parentId || originalItem.order !== item.order) {
+          updatesForFirestore.push({ 
+            id: item.id, 
+            changes: { parentId: item.parentId, order: item.order } 
+          });
+        } else if (originalItem.updatedAt !== item.updatedAt && item.id === itemId) {
+           // If only updatedAt changed for the moved item (e.g. moved to same place but triggered logic)
+           // Still good to record this, though parentId and order are primary.
+           // For now, we only update if parent or order changed.
+        }
+      });
+
+      if (updatesForFirestore.length > 0) {
+        const updatePromises = updatesForFirestore.map(u => updateMenuItem(u.id, u.changes));
+        await Promise.all(updatePromises);
+        toast.success('Menú reorganizado con éxito.');
       } else {
-        toast.error('Error al mover el elemento');
+        // This can happen if an item is dragged and dropped in the exact same position.
+        toast.info('No se realizaron cambios en la estructura del menú.');
       }
+      
+      setMenuItems(tempMenuItems);
+      setTreeData(buildMenuTree(tempMenuItems));
+
     } catch (error) {
       console.error('Error al mover el elemento:', error);
-      toast.error('Error al mover el elemento');
+      toast.error('Error al reorganizar el menú: ' + error.message);
+      setMenuItems(originalMenuItems); // Revert to original state on error
+      setTreeData(buildMenuTree(originalMenuItems));
     } finally {
       setIsSaving(false);
     }
@@ -491,7 +630,7 @@ export default function AdminMenuGestion() {
           <PlusCircle className="h-4 w-4 mr-2" /> Añadir Elemento Raíz
         </Button>
         
-        <RootDropTarget onMove={handleMoveItem}>
+        <RootDropTarget onMove={handleMoveItem} menuItems={menuItems}>
           {treeData.length === 0 ? (
             <p className="text-muted-foreground">
               No hay elementos en el menú. Comienza añadiendo un elemento raíz.
@@ -505,6 +644,7 @@ export default function AdminMenuGestion() {
                 onOpenModal={openModal}
                 onDelete={handleDeleteItem}
                 onMove={handleMoveItem}
+                parentId={null} // Root items have null parentId
               />
             ))
           )}
