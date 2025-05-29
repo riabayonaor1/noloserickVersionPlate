@@ -10,26 +10,12 @@ import {
   deleteMenuItem,
   getPublicPages
 } from '@/lib/firestoreService';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter,
-  DialogDescription 
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, Input, Label, Select, etc.,
+// ya no se importan aquí si solo se usan en MenuGestionDialog.tsx
 import { toast } from 'sonner';
 import { PlusCircle, ChevronRight, ChevronDown, File, Folder, Edit, Trash, GripVertical } from 'lucide-react';
 import { useDrag, useDrop, DndProvider } from 'react-dnd';
+import dynamic from 'next/dynamic';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { cn } from '@/lib/utils';
 
@@ -335,18 +321,47 @@ const RootDropTarget = ({ onMove, children, menuItems }) => { // Added menuItems
 export default function AdminMenuGestion() {
   const [menuItems, setMenuItems] = useState([]);
   const [treeData, setTreeData] = useState([]);
-  const [allPages, setAllPages] = useState([]);
+  const [allPages, setAllPages] = useState<Page[]>([]); // Especificar tipo para allPages
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
   // Estado para modales
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('add');
-  const [currentItem, setCurrentItem] = useState(null);
-  const [parentFolderId, setParentFolderId] = useState(null);
+  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add'); // Especificar tipo para modalMode
+  const [currentItem, setCurrentItem] = useState<MenuItem | null>(null); // Especificar tipo para currentItem
+  const [parentFolderId, setParentFolderId] = useState<string | null>(null); // Especificar tipo para parentFolderId
   const [itemName, setItemName] = useState('');
-  const [itemType, setItemType] = useState('folder');
+  const [itemType, setItemType] = useState('folder'); // 'folder' or 'page'
   const [selectedPageId, setSelectedPageId] = useState('');
+
+// Importar dinámicamente MenuGestionDialog
+const MenuGestionDialog = dynamic(() => import('@/components/admin/MenuGestionDialog'), {
+  ssr: false,
+  // loading: () => <p>Cargando diálogo...</p>, // Opcional
+});
+
+  // Interfaz para Page (si no está ya definida globalmente)
+  interface Page {
+    id: string;
+    title: string;
+    slug?: string;
+  }
+
+  // Interfaz para MenuItem (si no está ya definida globalmente)
+  // Esta debe coincidir con la usada en DraggableMenuItem y MenuGestionDialog
+  interface MenuItem {
+    id: string;
+    name: string;
+    type: string;
+    parentId: string | null;
+    order: number;
+    pageId?: string | null;
+    slug?: string | null;
+    children?: MenuItem[];
+    createdAt?: any; // O tipo más específico
+    updatedAt?: any; // O tipo más específico
+  }
+
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -748,74 +763,33 @@ export default function AdminMenuGestion() {
           )}
         </RootDropTarget>
         
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {modalMode === 'add' 
-                  ? 'Añadir Nuevo Elemento al Menú' 
-                  : 'Editar Elemento del Menú'}
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="itemType" className="text-right">Tipo</Label>
-                <Select
-                  value={itemType}
-                  onValueChange={setItemType}
-                  disabled={modalMode === 'edit' && currentItem?.children?.length > 0}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecciona un tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="folder">Carpeta</SelectItem>
-                    <SelectItem value="page">Página</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {itemType === 'folder' ? (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="itemName" className="text-right">Nombre Carpeta</Label>
-                  <Input
-                    id="itemName"
-                    value={itemName}
-                    onChange={(e) => setItemName(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-              ) : (
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="selectedPageId" className="text-right">Página</Label>
-                  <Select
-                    value={selectedPageId}
-                    onValueChange={setSelectedPageId}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecciona una página" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allPages.map((page) => (
-                        <SelectItem key={page.id} value={page.id}>
-                          {page.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleModalSubmit} disabled={isSaving}>
-                {isSaving ? 'Guardando...' : 'Guardar'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {isModalOpen && (
+          <MenuGestionDialog
+            isOpen={isModalOpen}
+            onOpenChange={setIsModalOpen}
+            mode={modalMode}
+            handleSubmit={handleModalSubmit}
+            isSaving={isSaving}
+            itemName={itemName}
+            onItemNameChange={setItemName}
+            itemType={itemType}
+            onItemTypeChange={(newType) => {
+              setItemType(newType);
+              // Lógica adicional si es necesaria al cambiar el tipo, por ejemplo:
+              if (newType === 'folder') {
+                setSelectedPageId(''); // Limpiar página seleccionada si se cambia a carpeta
+              } else {
+                // Si se cambia a 'page', el nombre del item se tomará del título de la página.
+                // El itemName se podría limpiar o actualizar en handleModalSubmit.
+                // Por ahora, setItemName no se llama aquí directamente para 'page' type.
+              }
+            }}
+            selectedPageId={selectedPageId}
+            onSelectedPageIdChange={setSelectedPageId}
+            allPages={allPages}
+            currentItem={currentItem}
+          />
+        )}
       </div>
     </DndProvider>
   );
