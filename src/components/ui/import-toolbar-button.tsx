@@ -8,6 +8,7 @@ import { getEditorDOMFromHtmlString } from '@udecode/plate';
 import { MarkdownPlugin } from '@udecode/plate-markdown';
 import { useEditorRef } from '@udecode/plate/react';
 import { ArrowUpToLineIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { useFilePicker } from 'use-file-picker';
 
 import {
@@ -37,7 +38,13 @@ export function ImportToolbarButton(props: DropdownMenuProps) {
     }
 
     if (type === 'markdown') {
-      return editor.getApi(MarkdownPlugin).markdown.deserialize(text);
+      try {
+        return editor.getApi(MarkdownPlugin).markdown.deserialize(text);
+      } catch (error) {
+        console.error('Markdown import failed:', error);
+        toast.error('Error al importar el archivo Markdown');
+        return [];
+      }
     }
 
     return [];
