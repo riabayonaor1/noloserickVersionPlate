@@ -2,8 +2,21 @@
  * Exportación de convertidores para contenido de Plate utilizando las APIs nativas
  */
 
-import { createPlateEditor } from '@udecode/plate/react';
+import { createPlateEditor, PlateEditor } from '@udecode/plate/react';
 import { Descendant, TElement, TNode, TText } from '@udecode/plate';
+import { deserializeMd } from '@udecode/plate-markdown';
+import { createParagraphPlugin } from '@udecode/plate-paragraph';
+import { createHeadingPlugin } from '@udecode/plate-heading';
+import { createBoldPlugin } from '@udecode/plate-basic-marks';
+import { createItalicPlugin } from '@udecode/plate-basic-marks';
+import { createCodeBlockPlugin } from '@udecode/plate-code-block';
+import { createBlockquotePlugin } from '@udecode/plate-block-quote';
+import { createCalloutPlugin } from '@udecode/plate-callout';
+import { createListPlugin } from '@udecode/plate-list';
+import { createLinkPlugin } from '@udecode/plate-link';
+import { createTablePlugin } from '@udecode/plate-table';
+import { createImagePlugin } from '@udecode/plate-image';
+
 
 // Definir tipos necesarios
 type MyValue = Descendant[];
@@ -114,17 +127,26 @@ export const PlateImporter = {
    * (Versión simulada ya que no tenemos acceso completo a las APIs)
    */
   fromMarkdown: (markdown: string): MyValue => {
-    // Implementación básica para evitar errores
-    if (!markdown) {
-      return [{ type: 'p', children: [{ text: '' }] }];
+    if (!markdown || markdown.trim() === '') {
+      return [{ type: 'p', children: [{ text: '' }] }] as MyValue;
     }
-    
-    // Simplemente devuelve un párrafo con el texto
-    return [{ 
-      type: 'p', 
-      children: [{ 
-        text: markdown 
-      }] 
-    }];
+
+    const editor = createPlateEditor({
+      plugins: [
+        createParagraphPlugin(),
+        createHeadingPlugin(),
+        createBoldPlugin(),
+        createItalicPlugin(),
+        createCodeBlockPlugin(),
+        createBlockquotePlugin(),
+        createCalloutPlugin(),
+        createListPlugin(),
+        createLinkPlugin(),
+        createTablePlugin(),
+        createImagePlugin(),
+      ],
+    });
+
+    return deserializeMd<PlateEditor>(editor, markdown) as MyValue;
   }
 };
