@@ -14,6 +14,11 @@ import { plateToHtml } from './plateToHtml';
 // Re-exportar la función plateToHtml para que se pueda usar desde este punto central
 export { plateToHtml };
 
+// Importaciones de remark
+import { unified } from 'remark';
+import remarkParse from 'remark-parse';
+import { Node as RemarkNode, Parent as RemarkParent } from 'unist'; // Tipos de Remark
+
 /**
  * Objeto que contiene funciones para exportar contenido de Plate a diferentes formatos
  */
@@ -118,13 +123,92 @@ export const PlateImporter = {
     if (!markdown) {
       return [{ type: 'p', children: [{ text: '' }] }];
     }
+
+    const processor = unified().use(remarkParse);
+    const ast = processor.parse(markdown);
+
+    // Función para transformar el AST de Remark a formato Plate
+    const transformNode = (node: RemarkNode): Descendant | Descendant[] | null => {
+      if (!node) return null;
+
+      // Manejar nodos de texto
+      if (node.type === 'text') {
+        return { text: (node as any).value || '' };
+      }
+
+      // Manejar elementos con hijos
+      let children: Descendant[] = [];
+      if ((node as RemarkParent).children) {
+        children = (node as RemarkParent).children.flatMap(transformNode).filter(Boolean) as Descendant[];
+      }
+
+      // Si después de transformar los hijos, el único hijo es un objeto de texto vacío
+      // y el tipo actual no es uno que intrínsecamente pueda estar "vacío" (como un párrafo),
+      // podríamos querer devolver solo el objeto de texto para evitar anidamientos innecesarios.
+      // O, si los hijos están vacíos, devolver un objeto de texto vacío.
+      if (children.length === 0 && node.type !== 'paragraph' && node.type !== 'heading' && node.type !== 'code') {
+         // Para tipos como strong, emphasis, etc., si no tienen hijos, no deberían renderizar nada.
+         // O podrían necesitar un hijo de texto vacío si Plate lo requiere.
+         // Por ahora, si no hay hijos, y no es un bloque principal, devolvemos null.
+         // Esto podría necesitar ajuste basado en cómo Plate maneja elementos vacíos.
+         return null;
+      } else if (children.length === 0 && (node.type === 'paragraph' || node.type === 'heading')) {
+        // Párrafos y encabezados vacíos deben tener un hijo de texto vacío según la estructura de Plate
+        children = [{ text: '' }];
+      }
+
+
+      switch (node.type) {
+        case 'root':
+          return children.length > 0 ? children : [{ type: 'p', children: [{ text: '' }] }];
+
+        case 'paragraph':
+          return { type: 'p', children };
+
+        case 'heading':
+          const level = (node as any).depth || 1;
+          const type = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+          return { type, children };
+
+        case 'strong': // Negrita
+          // Los nodos 'strong' en Remark contienen hijos que deben ser procesados.
+          // Esos hijos se convierten en nodos de texto con la propiedad 'bold'.
+          return children.map(child => ({ ...child, bold: true }));
+
+        case 'emphasis': // Cursiva
+          // Similar a 'strong', aplicamos 'italic' a los hijos procesados.
+          return children.map(child => ({ ...child, italic: true }));
+
+        case 'inlineCode': // Código en línea
+          // El valor del código en línea está directamente en el nodo.
+          // Plate espera un objeto de texto con la propiedad code y el texto.
+          return { text: (node as any).value || '', code: true };
+
+        case 'code': // Bloque de código
+          // El valor del bloque de código está en el nodo.
+          // Plate espera un tipo 'code_block' con un hijo de texto.
+          // Los bloques de código en remark tienen un solo hijo de texto con el contenido.
+          // Si hay saltos de línea, se preservan en `node.value`.
+          const codeContent = (node as any).value || '';
+          return { type: 'code_block', children: [{ text: codeContent }] };
+
+        // Caso para manejar otros tipos de nodos no implementados o ignorarlos
+        default:
+          // Si hay hijos, devolvemos los hijos (para desenvolverlos del nodo actual no manejado)
+          // Si no hay hijos, devolvemos null para ignorar este nodo.
+          return children.length > 0 ? children : null;
+      }
+    };
+
+    const plateContent = transformNode(ast);
     
-    // Simplemente devuelve un párrafo con el texto
-    return [{ 
-      type: 'p', 
-      children: [{ 
-        text: markdown 
-      }] 
-    }];
+    // Asegurarse de que plateContent es un array
+    if (Array.isArray(plateContent)) {
+      return plateContent.length > 0 ? plateContent : [{ type: 'p', children: [{ text: '' }] }];
+    } else if (plateContent) {
+      return [plateContent];
+    } else {
+      return [{ type: 'p', children: [{ text: '' }] }];
+    }
   }
 };
