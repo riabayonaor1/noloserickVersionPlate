@@ -55,7 +55,7 @@ export const AdminSidebar: React.FC = () => {
         </Button>
       </div>
       
-      <nav className="space-y-2 flex-1">
+      <nav className="space-y-2 flex-1 overflow-y-auto min-h-0">
         <SidebarItem 
           href="/admin/dashboard" 
           icon={<Home size={18} />} 
