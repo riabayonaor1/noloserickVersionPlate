@@ -134,7 +134,7 @@ export const RecursiveMenuItem = ({
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   className={cn(
-                    "pl-4 ml-6 border-l mt-1 overflow-y-auto max-h-[calc(100vh-20rem)]",
+                    "pl-4 ml-6 border-l mt-1 overflow-y-auto max-h-[calc(100vh-10rem)]",
                     snapshot.isDraggingOver && "border-primary"
                   )}
                 >
