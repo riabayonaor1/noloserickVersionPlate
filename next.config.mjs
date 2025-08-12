@@ -12,7 +12,26 @@ const nextConfig = {
   // trailingSlash: true,
   images: {
     // unoptimized: true, // No es necesario con SSR
-    domains: ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'utfs.io',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
   // Configuración de ESLint para evitar que los errores detengan la compilación
   eslint: {
